@@ -20,26 +20,7 @@ vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float thresho
 void CallBackFunc(int event, int x, int y, int flags, void* userdata);
 void drawGraph(vector<float> corrSeries, string WinName);
 
-template<unsigned int N>
-vector<float> corrCode(string bitstring, int derating){
-	bitset<N> bits(bitstring);
-	vector<float> input(bits.size()*derating);
-	vector<float> output(input.size(), 0);
-	
-	for(size_t i = 0; i != input.size(); i++)
-		input[i] = bits[i/derating];
-
-	for(size_t i = 0; i != input.size(); i++){
-		for(size_t j = 0; j!= input.size(); j++){
-			output[i] += input[j]*input[(j+i)%input.size()];
-		}
-	}
-		
-	for(size_t i = input.size(); i !=0; i--)
-		output[i-1] /= output[0];
-
-	return output;
-};
+template<unsigned int N> vector<float> corrCode(string bitstring, int derating);
 
 struct getFrameFunctor{
     float _decimation;
@@ -329,3 +310,23 @@ vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float thresho
 }
 
 
+template<unsigned int N>
+vector<float> corrCode(string bitstring, int derating){
+	bitset<N> bits(bitstring);
+	vector<float> input(bits.size()*derating);
+	vector<float> output(input.size(), 0);
+	
+	for(size_t i = 0; i != input.size(); i++)
+		input[i] = bits[i/derating];
+
+	for(size_t i = 0; i != input.size(); i++){
+		for(size_t j = 0; j!= input.size(); j++){
+			output[i] += input[j]*input[(j+i)%input.size()];
+		}
+	}
+		
+	for(size_t i = input.size(); i !=0; i--)
+		output[i-1] /= output[0];
+
+	return output;
+};
