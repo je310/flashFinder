@@ -14,7 +14,8 @@ using namespace cv;
 vector<Mat> autoCorrelate (vector<Mat> input,int offset);
 void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer);
 Mat findAvOfVid(string fileName,float decimation);
-
+void CallBackFunc(int event, int x, int y, int flags, void* userdata);
+void drawGraph(vector<float> corrSeries, string WinName);
 //cheeky global variables
 
 
@@ -94,19 +95,31 @@ int main(){
     for(int i = 0; i< lengthOfBuffers; i++){
         corrBuffer.at(i) -= averageCorr;
     }
-    double min, max;
+    double min, max, minSaved, maxSaved;
+    minSaved = 1e60;
+    maxSaved = -1e60;
     for(int i = 0; i < lengthOfBuffers; i++){
         minMaxLoc(corrBuffer.at(i), &min, &max);
+        if(min<minSaved) minSaved = min;
+        if(max>maxSaved) maxSaved = max;
     }
 
     for(int i = 0; i < lengthOfBuffers; i++){
-        corrBuffer.at(i) -= min;
-        corrBuffer.at(i) *= 1/max;
+        corrBuffer.at(i) -= minSaved;
+        corrBuffer.at(i) *= 1/maxSaved;
     }
     for(int i = 0; i < lengthOfBuffers; i++){
-        corrBuffer.at(i) += 1;
+        //corrBuffer.at(i) += 1;
         corrBuffer.at(i) *= 0.5;
     }
+    minSaved = 1e60;
+    maxSaved = -1e60;
+    for(int i = 0; i < lengthOfBuffers; i++){
+        minMaxLoc(corrBuffer.at(i), &min, &max);
+        if(min<minSaved) minSaved = min;
+        if(max>maxSaved) maxSaved = max;
+    }
+    cout<< minSaved << "   "<< maxSaved << endl;
 
     haveALook(lengthOfBuffers,corrBuffer,imageBuffer);
 
@@ -136,6 +149,16 @@ vector<Mat> autoCorrelate (vector<Mat> input, int offset){      //the ofset aims
 void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer){
     namedWindow("corrBuffer",WINDOW_NORMAL );
     namedWindow("imageBuffer",WINDOW_NORMAL );
+    Point clickLocation;
+    Point clickLocationOld;
+    clickLocationOld.x = 0;
+    clickLocationOld.y = 0;
+    vector<float> corrSeries;
+    for(int i =0; i < corrBuffer.size(); i++){
+        corrSeries.push_back(0.0);
+    }
+    setMouseCallback("corrBuffer", CallBackFunc, &clickLocation);
+    setMouseCallback("imageBuffer", CallBackFunc, &clickLocation);
     while(1){
         int k =waitKey(1);
         usleep(100000);
@@ -149,6 +172,13 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
             myWin--;
             if( myWin == -1) myWin = 0;
             cout<<myWin<<endl;
+        }
+        if(clickLocation.x != clickLocationOld.x || clickLocation.y != clickLocationOld.y){
+            for(int i =0; i < corrBuffer.size(); i++){
+                corrSeries.push_back(corrBuffer.at(i).at<float>(clickLocation.x,clickLocation.y));
+            }
+            drawGraph(corrSeries, "inspectSeries");
+            clickLocationOld = clickLocation;
         }
         if(k == 'q') break;
         imshow("corrBuffer",corrBuffer.at(myWin));
@@ -184,4 +214,41 @@ Mat findAvOfVid(string fileName,float decimation){
     averageFloatIn = averageFloatIn/NoOfFrames;
     return averageFloatIn;
     cap.release();
+}
+
+void CallBackFunc(int event, int x, int y, int flags, void* clickLocation){
+    Point* thisLocation = (Point*) clickLocation;
+     if  ( event == EVENT_LBUTTONDOWN ){
+          cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+          thisLocation->x = x;
+          thisLocation->y = y;
+     }
+     else if  ( event == EVENT_RBUTTONDOWN ){
+          cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+     }
+     else if  ( event == EVENT_MBUTTONDOWN ){
+          cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+     }
+     else if ( event == EVENT_MOUSEMOVE ){
+
+
+     }
+}
+
+void drawGraph(vector<float> corrSeries, string WinName){
+    namedWindow(WinName,WINDOW_NORMAL );
+    int sheetSize = 256;
+    Mat graph(sheetSize,sheetSize,CV_32FC1,0.0);
+    int numX = corrSeries.size();
+    int secSize  = (int)(sheetSize/numX);
+    Rect rio;
+    for(int i = 0; i < numX; i++){
+        int height = (int)((1-(corrSeries.at(i)))*sheetSize)-1;
+        int start = i*secSize;
+        cout << corrSeries.at(i) << endl;
+        rio =Rect(start, height, secSize, sheetSize-height);
+        cout << rio.x << " " << rio.y << " " << rio.width<< " "  << rio.height <<" "<< graph.size() << endl;
+        //graph(rio) = 1.0;
+    }
+    imshow(WinName, graph);
 }
