@@ -12,7 +12,7 @@ using namespace cv;
 
 
 //fuction declerations
-vector<Mat> autoCorrelate (vector<Mat> input,int offset);
+vector<Mat> autoCorrelate (vector<Mat> input);
 void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer, const int derating);
 Mat findAvOfVid(string fileName,float decimation);
 vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold, vector<float> codeSeries);
@@ -51,7 +51,7 @@ int main(){
     const float secondsToProcess = 2;
     const float FPSCamera = 118.4;
 //    string fileName = "Videos/glowFlash.mp4";
-    string fileName = "Videos/fasterFlash.mp4";
+    string fileName = "fakeVideos/video.mp4";
 
 
 
@@ -94,7 +94,7 @@ int main(){
     //process the whole video here.
 
     for(int i = lengthOfBuffers; i < numberToDo; i++){          //for every frame to be processed.
-        vector<Mat> thisCorrelation = autoCorrelate(imageBuffer,i%lengthOfBuffers);
+        vector<Mat> thisCorrelation = autoCorrelate(imageBuffer);
         for(int j = 0; j< lengthOfBuffers; j++){                    // accumilate the correlation in all bins at each time step forwards.
             corrBuffer.at(j) = corrBuffer.at(j) +thisCorrelation.at(j);
         }
@@ -148,15 +148,15 @@ int main(){
 
 //function implementations
 
-vector<Mat> autoCorrelate (vector<Mat> input, int offset){      //the ofset aims to allow a circular buffer use of the vector.
-
+vector<Mat> autoCorrelate (vector<Mat> input){      //the ofset aims to allow a circular buffer use of the vector.
     vector<Mat> corrResult;
     int sz = input.size();
-    Mat intermediateCorr(input.at(0).size(),CV_32FC1,0.0);
+
     for(int i = 0; i < input.size(); i++){                                      //for all offsets of the thing to correlate
+        Mat intermediateCorr(input.at(0).size(),CV_32FC1,0.0);
         for(int j = 0; j < input.size(); j++){                                  //for each pair of images that align this time
-            Mat a = input.at((j+offset)%sz);
-            Mat b = input.at((i+j+offset)%sz);
+            Mat a = input.at((j)%sz);
+            Mat b = input.at((i+j)%sz);
             Mat c = a.mul(b);
             intermediateCorr = c+intermediateCorr;
         }
@@ -196,7 +196,7 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
             cout<<myWin<<endl;
         }
         if(k == 'h'){
-            vector<float> code = corrCode<8>("10101010", derating);
+            vector<float> code = corrCode<8>("11001100", derating);
             drawGraph(code, "the code");
             findCodedness(corrBuffer, "heatMap", 0.1,code );
         }
