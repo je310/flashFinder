@@ -20,17 +20,18 @@ struct getFrameFunctor{
 	
 	getFrameFunctor(float decimation):_decimation(decimation){}
 
-	void operator() (VideoCapture &cap, Mat &frameout){
+	Mat operator() (VideoCapture &cap){
 		Mat frameIn;                //The newest frame from the stream
 		Mat frameSmall;             // A compressed version of the image
 		Mat frameGrey;              // gray scale image.
-		//Mat frameFloat;             // float image that is the 'base' of the operation
+		Mat frameFloat;             // float image that is the 'base' of the operation
 
 		cap >> frameIn;
-
 		resize(frameIn,frameSmall,Size(0,0),_decimation,_decimation);
 		cv::cvtColor(frameSmall, frameGrey, CV_BGR2GRAY);
-		frameGrey.convertTo(frameout,CV_32FC1);
+		frameGrey.convertTo(frameFloat,CV_32FC1);
+		
+		return frameFloat;
 	}
 };
 
@@ -71,8 +72,7 @@ int main(){
 
     //initialise our buffers.
     for(int i = 0; i <lengthOfBuffers; i++){
-		Mat frame;
-		getFrame(cap, frame);
+		Mat frame = getFrame(cap);
         imageBuffer.push_back(Mat(frame.size(),CV_32FC1, 0.0));
         imageBuffer.at(i) = frame-av;
         //frame.copyTo(imageBuffer.at(i));
@@ -88,8 +88,7 @@ int main(){
         for(int j = 0; j< lengthOfBuffers; j++){                    // accumilate the correlation in all bins at each time step forwards.
             corrBuffer.at(j) = corrBuffer.at(j) +thisCorrelation.at(j);
         }
-		Mat frame;
-		getFrame(cap, frame);
+		Mat frame = getFrame(cap);
         imageBuffer.at(i%lengthOfBuffers) = frame-av;
         //frame.copyTo(imageBuffer.at(i%lengthOfBuffers));
 
@@ -97,7 +96,7 @@ int main(){
         if (i%20 == 0) cout<<endl;
     }
 
-    Mat averageCorr(corrBuffer.at(0).size(),CV_32FC1);
+    Mat averageCorr(corrBuffer.at(0).size(),CV_32FC1, 0.0);
     for(int i = 0; i< lengthOfBuffers; i++){
         averageCorr += corrBuffer.at(i);
     }
@@ -105,9 +104,9 @@ int main(){
     for(int i = 0; i< lengthOfBuffers; i++){
         corrBuffer.at(i) -= averageCorr;
     }
-    double min, max;
+    double min = 0, max = 0;
     for(int i = 0; i < lengthOfBuffers; i++){
-        minMaxLoc(corrBuffer.at(i), &min, &max);
+        minMaxIdx(corrBuffer.at(i), &min, &max);
     }
 
     for(int i = 0; i < lengthOfBuffers; i++){
@@ -176,12 +175,11 @@ Mat findAvOfVid(string fileName,float decimation){
     float FPS = cap.get(CV_CAP_PROP_FPS);
     cout<<"The loaded file has "<< NoOfFrames << " frames. These were recorded at "<< FPS<<" FPS."<< endl;
 
-    Mat frame;
-	getFrame(cap, frame);
+    Mat frame = getFrame(cap);
     Mat averageFloatIn(frame.size(),CV_32FC1,0.0);
     frame.copyTo(averageFloatIn);
     for(int i = 1; i < NoOfFrames; i++){
-		getFrame(cap, frame);
+		frame = getFrame(cap);
         averageFloatIn += frame;
     }
     averageFloatIn = averageFloatIn/NoOfFrames;
