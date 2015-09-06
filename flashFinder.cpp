@@ -116,15 +116,15 @@ int main(){
         if(min<minSaved) minSaved = min;
         if(max>maxSaved) maxSaved = max;
     }
-
+    cout<< minSaved << "   "<< maxSaved << endl;
     for(int i = 0; i < lengthOfBuffers; i++){
         corrBuffer.at(i) -= minSaved;
         corrBuffer.at(i) *= 1/maxSaved;
     }
-    for(int i = 0; i < lengthOfBuffers; i++){
-        //corrBuffer.at(i) += 1;
-        corrBuffer.at(i) *= 0.5;
-    }
+//    for(int i = 0; i < lengthOfBuffers; i++){
+//        //corrBuffer.at(i) += 1;
+//        corrBuffer.at(i) *= 0.5;
+//    }
     minSaved = 1e60;
     maxSaved = -1e60;
     for(int i = 0; i < lengthOfBuffers; i++){
