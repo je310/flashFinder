@@ -15,8 +15,24 @@ vector<Mat> autoCorrelate (vector<Mat> input,int offset);
 void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer);
 Mat findAvOfVid(string fileName,float decimation);
 
-//cheeky global variables
+struct getFrameFunctor{
+	float _decimation;
+	
+	getFrameFunctor(float decimation):_decimation(decimation){}
 
+	void operator() (VideoCapture &cap, Mat &frameout){
+		Mat frameIn;                //The newest frame from the stream
+		Mat frameSmall;             // A compressed version of the image
+		Mat frameGrey;              // gray scale image.
+		//Mat frameFloat;             // float image that is the 'base' of the operation
+
+		cap >> frameIn;
+
+		resize(frameIn,frameSmall,Size(0,0),_decimation,_decimation);
+		cv::cvtColor(frameSmall, frameGrey, CV_BGR2GRAY);
+		frameGrey.convertTo(frameout,CV_32FC1);
+	}
+};
 
 
 int main(){
@@ -48,23 +64,19 @@ int main(){
     }
     cout <<"set up video stream"<<endl;
     //declare variables
-    Mat frameIn;                //The newest frame from the stream
-    Mat frameSmall;             // A compressed version of the image
-    Mat frameGrey;              // gray scale image.
-    Mat frameFloat;             // float image that is the 'base' of the operation
     vector<Mat> imageBuffer;    //buffer with grey images
     vector<Mat> corrBuffer;     //buffer with the corelation accumilation.
 
+	getFrameFunctor getFrame(decimation);
+
     //initialise our buffers.
     for(int i = 0; i <lengthOfBuffers; i++){
-        cap >> frameIn;
-        resize(frameIn,frameSmall,Size(0,0),decimation,decimation);
-        cv::cvtColor(frameSmall, frameGrey, CV_BGR2GRAY);
-        frameGrey.convertTo(frameFloat,CV_32FC1);
-        imageBuffer.push_back(Mat(frameFloat.size(),CV_32FC1, 0.0));
-        imageBuffer.at(i) = frameFloat-av;
-        //frameFloat.copyTo(imageBuffer.at(i));
-        corrBuffer.push_back(Mat(frameFloat.size(),CV_32FC1, 0.0));
+		Mat frame;
+		getFrame(cap, frame);
+        imageBuffer.push_back(Mat(frame.size(),CV_32FC1, 0.0));
+        imageBuffer.at(i) = frame-av;
+        //frame.copyTo(imageBuffer.at(i));
+        corrBuffer.push_back(Mat(frame.size(),CV_32FC1, 0.0));
     }
 
 
@@ -77,16 +89,15 @@ int main(){
         for(int j = 0; j< lengthOfBuffers; j++){                    // accumilate the correlation in all bins at each time step forwards.
             corrBuffer.at(j) = corrBuffer.at(j) +thisCorrelation.at(j);
         }
-        cap >> frameIn;
-        resize(frameIn,frameSmall,Size(0,0),decimation,decimation);
-        cv::cvtColor(frameSmall, frameGrey, CV_BGR2GRAY);
-        frameGrey.convertTo(frameFloat,CV_32FC1);
-        imageBuffer.at(i%lengthOfBuffers) = frameFloat-av;
-        //frameFloat.copyTo(imageBuffer.at(i%lengthOfBuffers));
+		Mat frame;
+		getFrame(cap, frame);
+        imageBuffer.at(i%lengthOfBuffers) = frame-av;
+        //frame.copyTo(imageBuffer.at(i%lengthOfBuffers));
 
         cout<<i<<" "<<flush;
         if (i%20 == 0) cout<<endl;
     }
+
     Mat averageCorr(corrBuffer.at(0).size(),CV_32FC1);
     for(int i = 0; i< lengthOfBuffers; i++){
         averageCorr += corrBuffer.at(i);
@@ -111,7 +122,7 @@ int main(){
 
     haveALook(lengthOfBuffers,corrBuffer,imageBuffer);
 
-
+	return 0;
 }
 
 //function implementations
@@ -163,28 +174,20 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
 }
 
 Mat findAvOfVid(string fileName,float decimation){
-    Mat frameIn;                //The newest frame from the stream
-    Mat frameSmall;             // A compressed version of the image
-    Mat frameGrey;              // gray scale image.
-    Mat frameFloat;             // float image that is the 'base' of the operation
     VideoCapture cap(fileName.c_str());
+	getFrameFunctor getFrame(decimation);
 
     int NoOfFrames = cap.get(CV_CAP_PROP_FRAME_COUNT);
     float FPS = cap.get(CV_CAP_PROP_FPS);
     cout<<"The loaded file has "<< NoOfFrames << " frames. These were recorded at "<< FPS<<" FPS."<< endl;
 
-    cap >> frameIn;
-    resize(frameIn,frameSmall,Size(0,0),decimation,decimation);
-    cv::cvtColor(frameSmall, frameGrey, CV_BGR2GRAY);
-    frameGrey.convertTo(frameFloat,CV_32FC1);
-    Mat averageFloatIn(frameFloat.size(),CV_32FC1,0.0);
-    frameFloat.copyTo(averageFloatIn);
+    Mat frame;
+	getFrame(cap, frame);
+    Mat averageFloatIn(frame.size(),CV_32FC1,0.0);
+    frame.copyTo(averageFloatIn);
     for(int i = 1; i < NoOfFrames; i++){
-        cap >> frameIn;
-        resize(frameIn,frameSmall,Size(0,0),decimation,decimation);
-        cv::cvtColor(frameSmall, frameGrey, CV_BGR2GRAY);
-        frameGrey.convertTo(frameFloat,CV_32FC1);
-        averageFloatIn += frameFloat;
+		getFrame(cap, frame);
+        averageFloatIn += frame;
     }
     averageFloatIn = averageFloatIn/NoOfFrames;
     return averageFloatIn;
