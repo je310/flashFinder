@@ -26,7 +26,7 @@ int main(){
     float decimation = 0.1;      //the amount the image is resized, makes performance better.
     float secondsToProcess = 2;
     float FPSCamera = 118.4;
-    string fileName = "slowerFlash.mp4";
+    string fileName = "Videos/slowerFlash.mp4";
 
     //derived less interesting variables;
     int numberToDo = int(FPSCamera * secondsToProcess);
