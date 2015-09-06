@@ -14,7 +14,7 @@ using namespace cv;
 vector<Mat> autoCorrelate (vector<Mat> input,int offset);
 void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer);
 Mat findAvOfVid(string fileName,float decimation);
-vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold);
+vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold, vector<float> codeSeries);
 
 void CallBackFunc(int event, int x, int y, int flags, void* userdata);
 void drawGraph(vector<float> corrSeries, string WinName);
@@ -47,7 +47,7 @@ int main(){
     float decimation = 0.1;      //the amount the image is resized, makes performance better.
     float secondsToProcess = 2;
     float FPSCamera = 118.4;
-    string fileName = "Videos/slowerFlash.mp4";
+    string fileName = "Videos/fasterFlash.mp4";
 
     //derived less interesting variables;
     int numberToDo = int(FPSCamera * secondsToProcess);
@@ -190,7 +190,8 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
             cout<<myWin<<endl;
         }
         if(k == 'h'){
-            findCodedness(corrBuffer, "heatMap", 0.1);
+            vector<float> code{1,0.5,0,0.5,1,0.5,0,0.5,1,0.5,0,0.5,1,0.5,0,0.5};
+            findCodedness(corrBuffer, "heatMap", 0.1,code );
         }
         if(clickLocation.x != clickLocationOld.x || clickLocation.y != clickLocationOld.y){
             for(int i =0; i < corrBuffer.size(); i++){
@@ -269,7 +270,7 @@ void drawGraph(vector<float> corrSeries, string WinName){
     imshow(WinName, graph);
 }
 
-vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold){
+vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold, vector<float> codeSeries){
     namedWindow(winName,WINDOW_NORMAL );
     Mat heatMap(corrBuffer.at(0).size(),CV_32FC1,0.0);
     vector<Point> hotSpots;
@@ -279,7 +280,7 @@ vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float thresho
         for(int j=0; j< rows; j++){
             float sum  = 0;
             for(int k = 0;  k < corrBuffer.size(); k++){
-                float val = (corrBuffer.at(k).at<float>(j,i)) -0.5;
+                float val =  (corrBuffer.at(k).at<float>(j,i)) - codeSeries.at(k);
                 sum += val * val;
             }
             heatMap.at<float>(j,i) = sum;
@@ -296,6 +297,10 @@ vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float thresho
     double min,max;
     minMaxLoc(heatMap, &min, &max);
     heatMap = (heatMap - min)/(max - min);
-    imshow(winName, heatMap);
+    Mat heatInverse(heatMap.size(),CV_32FC1,1.0);
+    heatInverse -= heatMap;
+    imshow(winName, heatInverse);
     return hotSpots;
 }
+
+
