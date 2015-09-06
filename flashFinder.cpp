@@ -251,8 +251,11 @@ void drawGraph(vector<float> corrSeries, string WinName){
         int start = i*secSize;
         std::cout.precision(2);
         cout << corrSeries.at(i)<<" ";
+        if (height < 0){
+            height = 0;
+        }
         rio =Rect(start, height, secSize, sheetSize-height);
-        //cout << rio.x << " " << rio.y << " " << rio.width<< " "  << rio.height <<" "<< graph.size() << endl;
+        cout << rio.x << " " << rio.y << " " << rio.width<< " "  << rio.height <<" "<< graph.size() << endl;
         graph(rio) = 1.0;
     }
     cout <<endl;
