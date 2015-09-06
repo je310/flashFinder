@@ -188,7 +188,7 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
         }
         if(clickLocation.x != clickLocationOld.x || clickLocation.y != clickLocationOld.y){
             for(int i =0; i < corrBuffer.size(); i++){
-                corrSeries.at(i) = corrBuffer.at(i).at<float>(clickLocation.x,clickLocation.y);
+                corrSeries.at(i) = corrBuffer.at(i).at<float>(clickLocation.y,clickLocation.x);
             }
             drawGraph(corrSeries, "inspectSeries");
             clickLocationOld = clickLocation;
@@ -253,7 +253,7 @@ void drawGraph(vector<float> corrSeries, string WinName){
         cout << corrSeries.at(i)<<" ";
         rio =Rect(start, height, secSize, sheetSize-height);
         //cout << rio.x << " " << rio.y << " " << rio.width<< " "  << rio.height <<" "<< graph.size() << endl;
-        //graph(rio) = 1.0;
+        graph(rio) = 1.0;
     }
     cout <<endl;
     imshow(WinName, graph);
