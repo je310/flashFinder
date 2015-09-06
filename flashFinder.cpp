@@ -12,7 +12,7 @@ using namespace cv;
 
 
 //fuction declerations
-vector<Mat> autoCorrelate (vector<Mat> input);
+vector<Mat> autoCorrelate (vector<Mat> input, size_t firstframe);
 void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer,Mat av, const int derating);
 Mat findAvOfVid(string fileName,float decimation);
 vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold, vector<float> codeSeries);
@@ -47,7 +47,7 @@ int main(){
     //parameters worth changing.
     const int lengthOfCode = 8;
     const int derating = 2;           //this is the factor slow down that Oscar suggested.
-    const float decimation = 1;      //the amount the image is resized, makes performance better.
+    const float decimation = 0.1;      //the amount the image is resized, makes performance better.
     const float secondsToProcess = 2;
     const float FPSCamera = 118.4;
     string fileName = "Videos/glowFlash.mp4";
@@ -94,7 +94,7 @@ int main(){
     //process the whole video here.
 
     for(int i = lengthOfBuffers; i < numberToDo; i++){          //for every frame to be processed.
-        vector<Mat> thisCorrelation = autoCorrelate(imageBuffer);
+        vector<Mat> thisCorrelation = autoCorrelate(imageBuffer, i);
         for(int j = 0; j< lengthOfBuffers; j++){                    // accumilate the correlation in all bins at each time step forwards.
             corrBuffer.at(j) = corrBuffer.at(j) +thisCorrelation.at(j);
         }
@@ -132,13 +132,6 @@ int main(){
     //        //corrBuffer.at(i) += 1;
     //        corrBuffer.at(i) *= 0.5;
     //    }
-    minSaved = 1e60;
-    maxSaved = -1e60;
-    for(int i = 0; i < lengthOfBuffers; i++){
-        minMaxLoc(corrBuffer.at(i), &min, &max);
-        if(min<minSaved) minSaved = min;
-        if(max>maxSaved) maxSaved = max;
-    }
     cout<< minSaved << "   "<< maxSaved << endl;
 
     haveALook(lengthOfBuffers,corrBuffer,imageBuffer,av, derating);
@@ -148,22 +141,18 @@ int main(){
 
 //function implementations
 
-vector<Mat> autoCorrelate (vector<Mat> input){      //the ofset aims to allow a circular buffer use of the vector.
+vector<Mat> autoCorrelate (vector<Mat> input, size_t firstframe){      //the ofset aims to allow a circular buffer use of the vector.
     vector<Mat> corrResult;
     int sz = input.size();
 
-    for(int i = 0; i < input.size(); i++){                                      //for all offsets of the thing to correlate
-        Mat intermediateCorr(input.at(0).size(),CV_32FC1,0.0);
-        for(int j = 0; j < input.size(); j++){                                  //for each pair of images that align this time
-            Mat a = input.at((j)%sz);
-            Mat b = input.at((i+j)%sz);
-            Mat c = a.mul(b);
-            intermediateCorr = c+intermediateCorr;
-        }
-        corrResult.push_back(Mat(input.at(0).size(),CV_32FC1,0.0));
-        intermediateCorr.copyTo(corrResult.at(i));
+	for(int j = 0; j < input.size(); j++){                                  //for each pair of images that align this time
+		Mat a = input.at((firstframe  )%sz);
+		Mat b = input.at((firstframe+j)%sz);
+		Mat c = a.mul(b);
+		corrResult.push_back(Mat(input.at(0).size(),CV_32FC1,0.0));
+		c.copyTo(corrResult.at(j));
+	}
 
-    }
     return corrResult;
 }
 void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer,Mat av, const int derating){
