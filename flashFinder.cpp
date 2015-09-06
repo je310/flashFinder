@@ -1,4 +1,3 @@
-
 //includes
 #include <bitset>
 #include <iostream>
@@ -49,11 +48,12 @@ int main(){
     const int lengthOfCode = 8;
     const int derating = 2;           //this is the factor slow down that Oscar suggested.
     const float decimation = 0.125;      //the amount the image is resized, makes performance better.
-    const float secondsToProcess = 2;
+    const float secondsToProcess = 6;
     const float FPSCamera = 118.4;
     const int periodsToAverage = 8;
-    string fileName = "Videos/longglowFlash.mp4";
+   // string fileName = "Videos/glowFlash.mp4";
     //string fileName = "fakeVideos/video.mp4";
+    string fileName = "Videos/fasterFlash.mp4";
 
 
 
@@ -196,7 +196,7 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
             cout<<myWin<<endl;
         }
         if(k == 'h'){
-            vector<float> code = corrCode<8>("11010100", derating);
+            vector<float> code = corrCode<8>("10101010", derating);
             drawGraph(code, "the code");
             findCodedness(corrBuffer, "heatMap", 0.1,code ,veryCor,factorHigh,factorLow,maxedCorr);
         }
@@ -309,7 +309,7 @@ vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float thresho
             float sum  = 0;
             vector<float> corrSeries;
             for(int k = 0;  k < corrBuffer.size(); k++){
-                corrSeries.push_back((corrBuffer.at(k).at<float>(j,i)) - codeSeries.at(k));
+                corrSeries.push_back((corrBuffer.at(k).at<float>(j,i)));
             }
 
             float minCorr = 10e8;
@@ -318,19 +318,17 @@ vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float thresho
                  if(corrSeries.at(p)>maxCorr){
                      maxCorr = corrSeries.at(p);
                  }
-                 if(corrSeries.at(p)<maxCorr){
+                 if(corrSeries.at(p)<minCorr){
                      minCorr = corrSeries.at(p);
                  }
              }
             for(int k = 0;  k < corrBuffer.size(); k++){
-                cout<<corrSeries.at(k) <<endl;
+
                 corrSeries.at(k) = (corrSeries.at(k) - minCorr)/(maxCorr - minCorr);
-                cout<<corrSeries.at(k) <<endl;
 
             }
-            cout<<"min:"<<minCorr<<"  |  "<<"max:"<<maxCorr<< endl;
             for(int k = 0;  k < corrBuffer.size(); k++){
-                maxedCorr.at(k).at<float>(j,i) = (corrSeries.at(k) - minCorr)/(maxCorr - minCorr);
+                maxedCorr.at(k).at<float>(j,i) = corrSeries.at(k) ;
             }
 
 
@@ -338,7 +336,7 @@ vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float thresho
                 float val = corrSeries.at(k) - codeSeries.at(k);
                 sum += val * val;
             }
-            heatMap.at<float>(j,i) = log(sum);
+            heatMap.at<float>(j,i) = (sum);
             if(sum > threshold){
                 Point thisHotspot;
                 thisHotspot.x = i;
@@ -396,4 +394,3 @@ vector<float> corrCode(string bitstring, int derating){
 
 	return output;
 }
-
