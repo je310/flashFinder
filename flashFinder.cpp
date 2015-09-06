@@ -15,6 +15,7 @@ using namespace cv;
 vector<Mat> autoCorrelate (vector<Mat> input,int offset);
 void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer);
 Mat findAvOfVid(string fileName,float decimation);
+vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold);
 
 void CallBackFunc(int event, int x, int y, int flags, void* userdata);
 void drawGraph(vector<float> corrSeries, string WinName);
@@ -37,23 +38,23 @@ vector<int> corrSeries(string bitstring, int derating){
 };
 
 struct getFrameFunctor{
-	float _decimation;
-	
-	getFrameFunctor(float decimation):_decimation(decimation){}
+    float _decimation;
 
-	Mat operator() (VideoCapture &cap){
-		Mat frameIn;                //The newest frame from the stream
-		Mat frameSmall;             // A compressed version of the image
-		Mat frameGrey;              // gray scale image.
-		Mat frameFloat;             // float image that is the 'base' of the operation
+    getFrameFunctor(float decimation):_decimation(decimation){}
 
-		cap >> frameIn;
-		resize(frameIn,frameSmall,Size(0,0),_decimation,_decimation);
-		cv::cvtColor(frameSmall, frameGrey, CV_BGR2GRAY);
-		frameGrey.convertTo(frameFloat,CV_32FC1);
-		
-		return frameFloat;
-	}
+    Mat operator() (VideoCapture &cap){
+        Mat frameIn;                //The newest frame from the stream
+        Mat frameSmall;             // A compressed version of the image
+        Mat frameGrey;              // gray scale image.
+        Mat frameFloat;             // float image that is the 'base' of the operation
+
+        cap >> frameIn;
+        resize(frameIn,frameSmall,Size(0,0),_decimation,_decimation);
+        cv::cvtColor(frameSmall, frameGrey, CV_BGR2GRAY);
+        frameGrey.convertTo(frameFloat,CV_32FC1);
+
+        return frameFloat;
+    }
 };
 
 
@@ -97,11 +98,11 @@ int main(){
     vector<Mat> imageBuffer;    //buffer with grey images
     vector<Mat> corrBuffer;     //buffer with the corelation accumilation.
 
-	getFrameFunctor getFrame(decimation);
+    getFrameFunctor getFrame(decimation);
 
     //initialise our buffers.
     for(int i = 0; i <lengthOfBuffers; i++){
-		Mat frame = getFrame(cap);
+        Mat frame = getFrame(cap);
         imageBuffer.push_back(Mat(frame.size(),CV_32FC1, 0.0));
         imageBuffer.at(i) = frame-av;
         //frame.copyTo(imageBuffer.at(i));
@@ -117,7 +118,7 @@ int main(){
         for(int j = 0; j< lengthOfBuffers; j++){                    // accumilate the correlation in all bins at each time step forwards.
             corrBuffer.at(j) = corrBuffer.at(j) +thisCorrelation.at(j);
         }
-		Mat frame = getFrame(cap);
+        Mat frame = getFrame(cap);
         imageBuffer.at(i%lengthOfBuffers) = frame-av;
         //frame.copyTo(imageBuffer.at(i%lengthOfBuffers));
 
@@ -147,10 +148,10 @@ int main(){
         corrBuffer.at(i) -= minSaved;
         corrBuffer.at(i) *= 1/(maxSaved-minSaved);
     }
-//    for(int i = 0; i < lengthOfBuffers; i++){
-//        //corrBuffer.at(i) += 1;
-//        corrBuffer.at(i) *= 0.5;
-//    }
+    //    for(int i = 0; i < lengthOfBuffers; i++){
+    //        //corrBuffer.at(i) += 1;
+    //        corrBuffer.at(i) *= 0.5;
+    //    }
     minSaved = 1e60;
     maxSaved = -1e60;
     for(int i = 0; i < lengthOfBuffers; i++){
@@ -162,7 +163,7 @@ int main(){
 
     haveALook(lengthOfBuffers,corrBuffer,imageBuffer);
 
-	return 0;
+    return 0;
 }
 
 //function implementations
@@ -188,6 +189,7 @@ vector<Mat> autoCorrelate (vector<Mat> input, int offset){      //the ofset aims
 void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer){
     namedWindow("corrBuffer",WINDOW_NORMAL );
     namedWindow("imageBuffer",WINDOW_NORMAL );
+    namedWindow("heatMap",WINDOW_NORMAL );
     Point clickLocation;
     Point clickLocationOld;
     clickLocationOld.x = 0;
@@ -198,6 +200,7 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
     }
     setMouseCallback("corrBuffer", CallBackFunc, &clickLocation);
     setMouseCallback("imageBuffer", CallBackFunc, &clickLocation);
+    setMouseCallback("heatMap", CallBackFunc, &clickLocation);
     while(1){
         int k =waitKey(1);
         usleep(100000);
@@ -212,6 +215,9 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
             if( myWin == -1) myWin = 0;
             cout<<myWin<<endl;
         }
+        if(k == 'h'){
+            findCodedness(corrBuffer, "heatMap", 0.1);
+        }
         if(clickLocation.x != clickLocationOld.x || clickLocation.y != clickLocationOld.y){
             for(int i =0; i < corrBuffer.size(); i++){
                 corrSeries.at(i) = corrBuffer.at(i).at<float>(clickLocation.y,clickLocation.x);
@@ -220,6 +226,7 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
             clickLocationOld = clickLocation;
         }
         if(k == 'q') break;
+
         imshow("corrBuffer",corrBuffer.at(myWin));
         imshow("imageBuffer",imageBuffer.at(myWin)/255);
     }
@@ -228,7 +235,7 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
 
 Mat findAvOfVid(string fileName,float decimation){
     VideoCapture cap(fileName.c_str());
-	getFrameFunctor getFrame(decimation);
+    getFrameFunctor getFrame(decimation);
 
     int NoOfFrames = cap.get(CV_CAP_PROP_FRAME_COUNT);
     float FPS = cap.get(CV_CAP_PROP_FPS);
@@ -238,7 +245,7 @@ Mat findAvOfVid(string fileName,float decimation){
     Mat averageFloatIn(frame.size(),CV_32FC1,0.0);
     frame.copyTo(averageFloatIn);
     for(int i = 1; i < NoOfFrames; i++){
-		frame = getFrame(cap);
+        frame = getFrame(cap);
         averageFloatIn += frame;
     }
     averageFloatIn = averageFloatIn/NoOfFrames;
@@ -248,21 +255,21 @@ Mat findAvOfVid(string fileName,float decimation){
 
 void CallBackFunc(int event, int x, int y, int flags, void* clickLocation){
     Point* thisLocation = (Point*) clickLocation;
-     if  ( event == EVENT_LBUTTONDOWN ){
-          cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-          thisLocation->x = x;
-          thisLocation->y = y;
-     }
-     else if  ( event == EVENT_RBUTTONDOWN ){
-          cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-     }
-     else if  ( event == EVENT_MBUTTONDOWN ){
-          cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-     }
-     else if ( event == EVENT_MOUSEMOVE ){
+    if  ( event == EVENT_LBUTTONDOWN ){
+        cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+        thisLocation->x = x;
+        thisLocation->y = y;
+    }
+    else if  ( event == EVENT_RBUTTONDOWN ){
+        cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+    }
+    else if  ( event == EVENT_MBUTTONDOWN ){
+        cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+    }
+    else if ( event == EVENT_MOUSEMOVE ){
 
 
-     }
+    }
 }
 
 void drawGraph(vector<float> corrSeries, string WinName){
@@ -286,4 +293,35 @@ void drawGraph(vector<float> corrSeries, string WinName){
     }
     cout <<endl;
     imshow(WinName, graph);
+}
+
+vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold){
+    namedWindow(winName,WINDOW_NORMAL );
+    Mat heatMap(corrBuffer.at(0).size(),CV_32FC1,0.0);
+    vector<Point> hotSpots;
+    int rows = heatMap.rows;
+    int cols = heatMap.cols;
+    for(int i = 0; i < cols; i++){
+        for(int j=0; j< rows; j++){
+            float sum  = 0;
+            for(int k = 0;  k < corrBuffer.size(); k++){
+                float val = (corrBuffer.at(k).at<float>(j,i)) -0.5;
+                sum += val * val;
+            }
+            heatMap.at<float>(j,i) = sum;
+            if(sum > threshold){
+                Point thisHotspot;
+                thisHotspot.x = i;
+                thisHotspot.y = j;
+                hotSpots.push_back(thisHotspot);
+            }
+        }
+    }
+
+
+    double min,max;
+    minMaxLoc(heatMap, &min, &max);
+    heatMap = (heatMap - min)/(max - min);
+    imshow(winName, heatMap);
+    return hotSpots;
 }
