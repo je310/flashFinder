@@ -1,6 +1,7 @@
 //includes
-#include <vector>
+#include <bitset>
 #include <iostream>
+#include <vector>
 #include <cv.h>
 #include <highgui.h>
 #include <unistd.h>
@@ -17,6 +18,23 @@ Mat findAvOfVid(string fileName,float decimation);
 
 void CallBackFunc(int event, int x, int y, int flags, void* userdata);
 void drawGraph(vector<float> corrSeries, string WinName);
+
+template<unsigned int N>
+vector<int> corrSeries(string bitstring, int derating){
+	bitset<N> bits(bitstring);
+	vector<int> input(bits.size()*derating);
+	vector<int> output(input.size(), 0);
+	
+	for(size_t i = 0; i != input.size(); i++)
+		input[i] = bits[i/derating];
+
+	for(size_t i = 0; i != input.size(); i++)
+		for(size_t j = 0; j!= input.size(); j++){
+			output[i] += input[j]*input[(j+i)%input.size()];
+		}
+
+	return output;
+};
 
 struct getFrameFunctor{
 	float _decimation;
@@ -41,12 +59,20 @@ struct getFrameFunctor{
 
 int main(){
     //parameters worth changing.
-    int lengthOfCode = 8;
-    int derating = 2;           //this is the factor slow down that Oscar suggested.
-    float decimation = 0.1;      //the amount the image is resized, makes performance better.
-    float secondsToProcess = 2;
-    float FPSCamera = 118.4;
-    string fileName = "Videos/slowerFlash.mp4";
+    const int lengthOfCode = 8;
+    const int derating = 2;           //this is the factor slow down that Oscar suggested.
+    const float decimation = 0.1;      //the amount the image is resized, makes performance better.
+    const float secondsToProcess = 2;
+    const float FPSCamera = 118.4;
+//    string fileName = "Videos/slowerFlash.mp4";
+    string fileName = "Videos/fasterFlash.mp4";
+
+	vector<int> code = corrSeries<lengthOfCode>("10101010", derating);
+
+	cout << "code: ";
+	for(size_t i=0; i != code.size(); i++)
+		cout << code[i] << " ";
+	cout << endl;
 
     //derived less interesting variables;
     int numberToDo = int(FPSCamera * secondsToProcess);
