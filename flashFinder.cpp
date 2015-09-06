@@ -15,7 +15,7 @@ using namespace cv;
 vector<Mat> autoCorrelate (vector<Mat> input, size_t firstframe);
 void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer,Mat av, const int derating);
 Mat findAvOfVid(string fileName,float decimation,int periodsToAverage,int lengthOfBuffers);
-vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold, vector<float> codeSeries);
+vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold, vector<float> codeSeries, bool veryCorr,float factorHigh, float factorLow, vector<Mat> &maxedCorr);
 
 void CallBackFunc(int event, int x, int y, int flags, void* userdata);
 void drawGraph(vector<float> corrSeries, string WinName);
@@ -51,7 +51,7 @@ int main(){
     const float secondsToProcess = 2;
     const float FPSCamera = 118.4;
     const int periodsToAverage = 8;
-    string fileName = "Videos/glowFlash.mp4";
+    string fileName = "Videos/longglowFlash.mp4";
     //string fileName = "fakeVideos/video.mp4";
 
 
@@ -160,13 +160,22 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
     namedWindow("corrBuffer",WINDOW_NORMAL );
     namedWindow("averageImage",WINDOW_NORMAL );
     namedWindow("heatMap",WINDOW_NORMAL );
+    static bool veryCor = 0;
+    static float factorHigh = 0.05;
+    static float factorLow = 0.025;
     Point clickLocation;
     Point clickLocationOld;
     clickLocationOld.x = 0;
     clickLocationOld.y = 0;
     vector<float> corrSeries;
+    vector<float> corrSeries2;
+    vector<Mat> maxedCorr;
+    for(int i =0; i < corrBuffer.size(); i++){
+            maxedCorr.push_back(Mat(corrBuffer.at(0).size(),CV_32FC1,0.0));
+    }
     for(int i =0; i < corrBuffer.size(); i++){
         corrSeries.push_back(0.0);
+        corrSeries2.push_back(0.0);
     }
     setMouseCallback("corrBuffer", CallBackFunc, &clickLocation);
     setMouseCallback("imageBuffer", CallBackFunc, &clickLocation);
@@ -188,17 +197,39 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
         if(k == 'h'){
             vector<float> code = corrCode<8>("11010100", derating);
             drawGraph(code, "the code");
-            findCodedness(corrBuffer, "heatMap", 0.1,code );
+            findCodedness(corrBuffer, "heatMap", 0.1,code ,veryCor,factorHigh,factorLow,maxedCorr);
+        }
+        if(k == '='){
+            factorHigh +=0.005;
+            cout << "displaying only the best:"<< factorHigh<<endl;
+        }
+        if(k == '-'){
+            factorHigh -=0.005;
+            cout << "displaying only the best:"<< factorHigh<<endl;
+        }
+        if(k == '0'){
+            factorLow +=0.005;
+            cout << "displaying only the worst:"<< factorLow<<endl;
+        }
+        if(k == '9'){
+            factorLow -=0.005;
+            cout << "displaying only the worst:"<< factorLow<<endl;
         }
         if(clickLocation.x != clickLocationOld.x || clickLocation.y != clickLocationOld.y){
             for(int i =0; i < corrBuffer.size(); i++){
                 corrSeries.at(i) = corrBuffer.at(i).at<float>(clickLocation.y,clickLocation.x);
             }
+            for(int i =0; i < corrBuffer.size(); i++){
+                corrSeries2.at(i) = maxedCorr.at(i).at<float>(clickLocation.y,clickLocation.x);
+            }
             drawGraph(corrSeries, "inspectSeries");
+            drawGraph(corrSeries2, "maxed");
             clickLocationOld = clickLocation;
         }
         if(k == 'q') break;
-
+        if(k == 'd'){
+            veryCor = ! veryCor;
+        }
         imshow("corrBuffer",corrBuffer.at(myWin));
         imshow("averageImage",av/255);
     }
@@ -253,20 +284,21 @@ void drawGraph(vector<float> corrSeries, string WinName){
     for(int i = 0; i < numX; i++){
         int height = (int)((1-(corrSeries.at(i)))*sheetSize)-1;
         int start = i*secSize;
-        std::cout.precision(2);
+        std::cout.precision(6);
         cout << corrSeries.at(i)<<" ";
         if (height < 0){
             height = 0;
         }
         rio =Rect(start, height, secSize, sheetSize-height);
         //cout << rio.x << " " << rio.y << " " << rio.width<< " "  << rio.height <<" "<< graph.size() << endl;
-        graph(rio) = 1.0;
+            //graph(rio) = 1.0;
+            rectangle(graph, rio, Scalar(1));
     }
     cout <<endl;
     imshow(WinName, graph);
 }
 
-vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold, vector<float> codeSeries){
+vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold, vector<float> codeSeries, bool veryCorr,float factorHigh, float factorLow, vector<Mat>& maxedCorr){
     namedWindow(winName,WINDOW_NORMAL );
     Mat heatMap(corrBuffer.at(0).size(),CV_32FC1,0.0);
     vector<Point> hotSpots;
@@ -275,11 +307,38 @@ vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float thresho
     for(int i = 0; i < cols; i++){
         for(int j=0; j< rows; j++){
             float sum  = 0;
+            vector<float> corrSeries;
             for(int k = 0;  k < corrBuffer.size(); k++){
-                float val =  (corrBuffer.at(k).at<float>(j,i)) - codeSeries.at(k);
+                corrSeries.push_back((corrBuffer.at(k).at<float>(j,i)) - codeSeries.at(k));
+            }
+
+            float minCorr = 10e8;
+            float maxCorr = -10e9;
+             for(int p = 0; p <corrBuffer.size(); p++){
+                 if(corrSeries.at(p)>maxCorr){
+                     maxCorr = corrSeries.at(p);
+                 }
+                 if(corrSeries.at(p)<maxCorr){
+                     minCorr = corrSeries.at(p);
+                 }
+             }
+            for(int k = 0;  k < corrBuffer.size(); k++){
+                cout<<corrSeries.at(k) <<endl;
+                corrSeries.at(k) = (corrSeries.at(k) - minCorr)/(maxCorr - minCorr);
+                cout<<corrSeries.at(k) <<endl;
+
+            }
+            cout<<"min:"<<minCorr<<"  |  "<<"max:"<<maxCorr<< endl;
+            for(int k = 0;  k < corrBuffer.size(); k++){
+                maxedCorr.at(k).at<float>(j,i) = (corrSeries.at(k) - minCorr)/(maxCorr - minCorr);
+            }
+
+
+            for(int k = 0;  k < corrBuffer.size(); k++){
+                float val = corrSeries.at(k) - codeSeries.at(k);
                 sum += val * val;
             }
-            heatMap.at<float>(j,i) = sum;
+            heatMap.at<float>(j,i) = log(sum);
             if(sum > threshold){
                 Point thisHotspot;
                 thisHotspot.x = i;
@@ -292,6 +351,23 @@ vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float thresho
 
     double min,max;
     minMaxLoc(heatMap, &min, &max);
+    double diff = max - min;
+    if(veryCorr){
+        max =  min + (factorHigh*diff);
+        min =  max - (factorLow*diff);
+        for(int i = 0; i < cols; i++){
+            for(int j=0; j< rows; j++){
+                if (heatMap.at<float>(j,i) > max){
+                    heatMap.at<float>(j,i) =  max;
+                }
+                if (heatMap.at<float>(j,i) < min){
+                    heatMap.at<float>(j,i) =  min;
+                }
+            }
+        }
+
+    }
+    cout << min << "        "<< max << endl;
     heatMap = (heatMap - min)/(max - min);
     Mat heatInverse(heatMap.size(),CV_32FC1,1.0);
     heatInverse -= heatMap;
