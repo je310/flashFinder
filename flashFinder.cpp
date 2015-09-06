@@ -13,26 +13,30 @@ using namespace cv;
 
 //fuction declerations
 vector<Mat> autoCorrelate (vector<Mat> input,int offset);
-void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer);
+void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer, const int derating);
 Mat findAvOfVid(string fileName,float decimation);
-vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold);
+vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold, vector<float> codeSeries);
 
 void CallBackFunc(int event, int x, int y, int flags, void* userdata);
 void drawGraph(vector<float> corrSeries, string WinName);
 
 template<unsigned int N>
-vector<int> corrSeries(string bitstring, int derating){
+vector<float> corrCode(string bitstring, int derating){
 	bitset<N> bits(bitstring);
-	vector<int> input(bits.size()*derating);
-	vector<int> output(input.size(), 0);
+	vector<float> input(bits.size()*derating);
+	vector<float> output(input.size(), 0);
 	
 	for(size_t i = 0; i != input.size(); i++)
 		input[i] = bits[i/derating];
 
-	for(size_t i = 0; i != input.size(); i++)
+	for(size_t i = 0; i != input.size(); i++){
 		for(size_t j = 0; j!= input.size(); j++){
 			output[i] += input[j]*input[(j+i)%input.size()];
 		}
+	}
+		
+	for(size_t i = input.size(); i !=0; i--)
+		output[i-1] /= output[0];
 
 	return output;
 };
@@ -68,12 +72,7 @@ int main(){
 //    string fileName = "Videos/slowerFlash.mp4";
     string fileName = "Videos/fasterFlash.mp4";
 
-	vector<int> code = corrSeries<lengthOfCode>("10101010", derating);
 
-	cout << "code: ";
-	for(size_t i=0; i != code.size(); i++)
-		cout << code[i] << " ";
-	cout << endl;
 
     //derived less interesting variables;
     int numberToDo = int(FPSCamera * secondsToProcess);
@@ -161,7 +160,7 @@ int main(){
     }
     cout<< minSaved << "   "<< maxSaved << endl;
 
-    haveALook(lengthOfBuffers,corrBuffer,imageBuffer);
+    haveALook(lengthOfBuffers,corrBuffer,imageBuffer, derating);
 
     return 0;
 }
@@ -186,7 +185,7 @@ vector<Mat> autoCorrelate (vector<Mat> input, int offset){      //the ofset aims
     }
     return corrResult;
 }
-void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer){
+void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer, const int derating){
     namedWindow("corrBuffer",WINDOW_NORMAL );
     namedWindow("imageBuffer",WINDOW_NORMAL );
     namedWindow("heatMap",WINDOW_NORMAL );
@@ -216,7 +215,8 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
             cout<<myWin<<endl;
         }
         if(k == 'h'){
-            findCodedness(corrBuffer, "heatMap", 0.1);
+			vector<float> code = corrCode<8>("10101010", derating);
+            findCodedness(corrBuffer, "heatMap", 0.1,code );
         }
         if(clickLocation.x != clickLocationOld.x || clickLocation.y != clickLocationOld.y){
             for(int i =0; i < corrBuffer.size(); i++){
@@ -295,7 +295,7 @@ void drawGraph(vector<float> corrSeries, string WinName){
     imshow(WinName, graph);
 }
 
-vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold){
+vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold, vector<float> codeSeries){
     namedWindow(winName,WINDOW_NORMAL );
     Mat heatMap(corrBuffer.at(0).size(),CV_32FC1,0.0);
     vector<Point> hotSpots;
@@ -305,7 +305,7 @@ vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float thresho
         for(int j=0; j< rows; j++){
             float sum  = 0;
             for(int k = 0;  k < corrBuffer.size(); k++){
-                float val = (corrBuffer.at(k).at<float>(j,i)) -0.5;
+                float val =  (corrBuffer.at(k).at<float>(j,i)) - codeSeries.at(k);
                 sum += val * val;
             }
             heatMap.at<float>(j,i) = sum;
@@ -322,6 +322,10 @@ vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float thresho
     double min,max;
     minMaxLoc(heatMap, &min, &max);
     heatMap = (heatMap - min)/(max - min);
-    imshow(winName, heatMap);
+    Mat heatInverse(heatMap.size(),CV_32FC1,1.0);
+    heatInverse -= heatMap;
+    imshow(winName, heatInverse);
     return hotSpots;
 }
+
+
