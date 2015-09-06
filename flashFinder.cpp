@@ -50,7 +50,7 @@ int main(){
     const float decimation = 0.1;      //the amount the image is resized, makes performance better.
     const float secondsToProcess = 2;
     const float FPSCamera = 118.4;
-//    string fileName = "Videos/slowerFlash.mp4";
+//    string fileName = "Videos/glowFlash.mp4";
     string fileName = "Videos/fasterFlash.mp4";
 
 
@@ -182,7 +182,7 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
     setMouseCallback("imageBuffer", CallBackFunc, &clickLocation);
     setMouseCallback("heatMap", CallBackFunc, &clickLocation);
     while(1){
-        int k =waitKey(1);
+        char k =waitKey(1);
         usleep(100000);
         static int myWin =0;
         if(k == 'j'){
@@ -196,7 +196,8 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
             cout<<myWin<<endl;
         }
         if(k == 'h'){
-			vector<float> code = corrCode<8>("10101010", derating);
+            vector<float> code = corrCode<8>("10101010", derating);
+            drawGraph(code, "the code");
             findCodedness(corrBuffer, "heatMap", 0.1,code );
         }
         if(clickLocation.x != clickLocationOld.x || clickLocation.y != clickLocationOld.y){
@@ -269,7 +270,7 @@ void drawGraph(vector<float> corrSeries, string WinName){
             height = 0;
         }
         rio =Rect(start, height, secSize, sheetSize-height);
-        cout << rio.x << " " << rio.y << " " << rio.width<< " "  << rio.height <<" "<< graph.size() << endl;
+        //cout << rio.x << " " << rio.y << " " << rio.width<< " "  << rio.height <<" "<< graph.size() << endl;
         graph(rio) = 1.0;
     }
     cout <<endl;
@@ -329,4 +330,4 @@ vector<float> corrCode(string bitstring, int derating){
 		output[i-1] /= output[0];
 
 	return output;
-};
+}
