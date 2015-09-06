@@ -47,7 +47,7 @@ int main(){
     //parameters worth changing.
     const int lengthOfCode = 8;
     const int derating = 2;           //this is the factor slow down that Oscar suggested.
-    const float decimation = 0.1;      //the amount the image is resized, makes performance better.
+    const float decimation = 1;      //the amount the image is resized, makes performance better.
     const float secondsToProcess = 2;
     const float FPSCamera = 118.4;
     const int periodsToAverage = 8;
@@ -135,7 +135,7 @@ int main(){
     //    }
     cout<< minSaved << "   "<< maxSaved << endl;
 
-    haveALook(lengthOfBuffers,corrBuffer,imageBuffer,av, derating);
+    //haveALook(lengthOfBuffers,corrBuffer,imageBuffer,av, derating);
 
     return 0;
 }
@@ -143,15 +143,15 @@ int main(){
 //function implementations
 
 vector<Mat> autoCorrelate (vector<Mat> input, size_t firstframe){      //the ofset aims to allow a circular buffer use of the vector.
-    vector<Mat> corrResult;
+    vector<Mat> corrResult(input.size());
     int sz = input.size();
 
+#pragma omp parallel for
 	for(int j = 0; j < input.size(); j++){                                  //for each pair of images that align this time
 		Mat a = input.at((firstframe  )%sz);
 		Mat b = input.at((firstframe+j)%sz);
 		Mat c = a.mul(b);
-		corrResult.push_back(Mat(input.at(0).size(),CV_32FC1,0.0));
-		c.copyTo(corrResult.at(j));
+		corrResult.at(j)=c;
 	}
 
     return corrResult;
@@ -252,7 +252,6 @@ Mat findAvOfVid(string fileName,float decimation,int periodsToAverage,int length
     }
     averageFloatIn = averageFloatIn/NoOfFrames;
     return averageFloatIn;
-    cap.release();
 }
 
 void CallBackFunc(int event, int x, int y, int flags, void* clickLocation){
