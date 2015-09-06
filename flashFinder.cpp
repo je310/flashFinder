@@ -47,7 +47,7 @@ int main(){
     //derived less interesting variables;
     int numberToDo = int(FPSCamera * secondsToProcess);
     int lengthOfBuffers = lengthOfCode * derating;
-
+    cout << "finding frame average"<<endl;
     Mat av = findAvOfVid(fileName,decimation);
     //open file
     VideoCapture cap(fileName.c_str());
@@ -82,7 +82,6 @@ int main(){
 
     cout<< "finished initialising buffers"<<endl;
     //process the whole video here.
-    cout<< lengthOfBuffers << " "<< numberToDo << endl;
 
     for(int i = lengthOfBuffers; i < numberToDo; i++){          //for every frame to be processed.
         vector<Mat> thisCorrelation = autoCorrelate(imageBuffer,i%lengthOfBuffers);
@@ -110,7 +109,7 @@ int main(){
     for(int i = 0; i < lengthOfBuffers; i++){
         minMaxLoc(corrBuffer.at(i), &min, &max);
     }
-    cout << "min corr val:"<< min<< " max corr val:"<< max<<endl;
+
     for(int i = 0; i < lengthOfBuffers; i++){
         corrBuffer.at(i) -= min;
         corrBuffer.at(i) *= 1/max;
@@ -138,14 +137,11 @@ vector<Mat> autoCorrelate (vector<Mat> input, int offset){      //the ofset aims
             Mat b = input.at((i+j+offset)%sz);
             Mat c = a.mul(b);
             intermediateCorr = c+intermediateCorr;
-            cout << "|"<<(j+offset)%sz << ","<<(i+j+offset)%sz<<"| ";
         }
-        cout<<endl;
         corrResult.push_back(Mat(input.at(0).size(),CV_32FC1,0.0));
         intermediateCorr.copyTo(corrResult.at(i));
 
     }
-    cout<<"------------------------------------------------------"<<endl;
     return corrResult;
 }
 void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer){
@@ -164,7 +160,6 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
             myWin--;
             if( myWin == -1) myWin = 0;
             cout<<myWin<<endl;
-            cout<< "value"<<corrBuffer.at(myWin).at<float>(20 ,20)<<endl;
         }
         if(k == 'q') break;
         imshow("corrBuffer",corrBuffer.at(myWin));
