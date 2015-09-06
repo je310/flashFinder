@@ -14,7 +14,7 @@ using namespace cv;
 //fuction declerations
 vector<Mat> autoCorrelate (vector<Mat> input);
 void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer,Mat av, const int derating);
-Mat findAvOfVid(string fileName,float decimation);
+Mat findAvOfVid(string fileName,float decimation,int periodsToAverage,int lengthOfBuffers);
 vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold, vector<float> codeSeries);
 
 void CallBackFunc(int event, int x, int y, int flags, void* userdata);
@@ -47,9 +47,10 @@ int main(){
     //parameters worth changing.
     const int lengthOfCode = 8;
     const int derating = 2;           //this is the factor slow down that Oscar suggested.
-    const float decimation = 1;      //the amount the image is resized, makes performance better.
+    const float decimation = 0.1;      //the amount the image is resized, makes performance better.
     const float secondsToProcess = 2;
     const float FPSCamera = 118.4;
+    const int periodsToAverage = 8;
     string fileName = "Videos/glowFlash.mp4";
     //string fileName = "fakeVideos/video.mp4";
 
@@ -59,7 +60,7 @@ int main(){
     int numberToDo = int(FPSCamera * secondsToProcess);
     int lengthOfBuffers = lengthOfCode * derating;
     cout << "finding frame average"<<endl;
-    Mat av = findAvOfVid(fileName,decimation);
+    Mat av = findAvOfVid(fileName,decimation,periodsToAverage,lengthOfBuffers);
     //open file
     VideoCapture cap(fileName.c_str());
     if(!cap.isOpened()) {
@@ -215,13 +216,12 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
     return;
 }
 
-Mat findAvOfVid(string fileName,float decimation){
+Mat findAvOfVid(string fileName,float decimation,int periodsToAverage,int lengthOfBuffers){
     VideoCapture cap(fileName.c_str());
     getFrameFunctor getFrame(decimation);
 
-    int NoOfFrames = cap.get(CV_CAP_PROP_FRAME_COUNT);
-    float FPS = cap.get(CV_CAP_PROP_FPS);
-    cout<<"The loaded file has "<< NoOfFrames << " frames. These were recorded at "<< FPS<<" FPS."<< endl;
+    int NoOfFrames = periodsToAverage*lengthOfBuffers;
+
 
     Mat frame = getFrame(cap);
     Mat averageFloatIn(frame.size(),CV_32FC1,0.0);
