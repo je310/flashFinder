@@ -1,3 +1,4 @@
+
 //includes
 #include <bitset>
 #include <iostream>
@@ -395,3 +396,4 @@ vector<float> corrCode(string bitstring, int derating){
 
 	return output;
 }
+
