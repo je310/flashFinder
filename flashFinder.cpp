@@ -13,7 +13,7 @@ using namespace cv;
 
 //fuction declerations
 vector<Mat> autoCorrelate (vector<Mat> input);
-void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer, const int derating);
+void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer,Mat av, const int derating);
 Mat findAvOfVid(string fileName,float decimation);
 vector<Point> findCodedness(vector<Mat> corrBuffer,string winName, float threshold, vector<float> codeSeries);
 
@@ -47,11 +47,11 @@ int main(){
     //parameters worth changing.
     const int lengthOfCode = 8;
     const int derating = 2;           //this is the factor slow down that Oscar suggested.
-    const float decimation = 0.1;      //the amount the image is resized, makes performance better.
+    const float decimation = 1;      //the amount the image is resized, makes performance better.
     const float secondsToProcess = 2;
     const float FPSCamera = 118.4;
-//    string fileName = "Videos/glowFlash.mp4";
-    string fileName = "fakeVideos/video.mp4";
+    string fileName = "Videos/glowFlash.mp4";
+    //string fileName = "fakeVideos/video.mp4";
 
 
 
@@ -141,7 +141,7 @@ int main(){
     }
     cout<< minSaved << "   "<< maxSaved << endl;
 
-    haveALook(lengthOfBuffers,corrBuffer,imageBuffer, derating);
+    haveALook(lengthOfBuffers,corrBuffer,imageBuffer,av, derating);
 
     return 0;
 }
@@ -166,9 +166,9 @@ vector<Mat> autoCorrelate (vector<Mat> input){      //the ofset aims to allow a 
     }
     return corrResult;
 }
-void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer, const int derating){
+void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer,Mat av, const int derating){
     namedWindow("corrBuffer",WINDOW_NORMAL );
-    namedWindow("imageBuffer",WINDOW_NORMAL );
+    namedWindow("averageImage",WINDOW_NORMAL );
     namedWindow("heatMap",WINDOW_NORMAL );
     Point clickLocation;
     Point clickLocationOld;
@@ -196,7 +196,7 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
             cout<<myWin<<endl;
         }
         if(k == 'h'){
-            vector<float> code = corrCode<8>("11001100", derating);
+            vector<float> code = corrCode<8>("11010100", derating);
             drawGraph(code, "the code");
             findCodedness(corrBuffer, "heatMap", 0.1,code );
         }
@@ -210,7 +210,7 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
         if(k == 'q') break;
 
         imshow("corrBuffer",corrBuffer.at(myWin));
-        imshow("imageBuffer",imageBuffer.at(myWin)/255);
+        imshow("averageImage",av/255);
     }
     return;
 }
