@@ -119,7 +119,7 @@ int main(){
     cout<< minSaved << "   "<< maxSaved << endl;
     for(int i = 0; i < lengthOfBuffers; i++){
         corrBuffer.at(i) -= minSaved;
-        corrBuffer.at(i) *= 1/maxSaved;
+        corrBuffer.at(i) *= 1/(maxSaved-minSaved);
     }
 //    for(int i = 0; i < lengthOfBuffers; i++){
 //        //corrBuffer.at(i) += 1;
