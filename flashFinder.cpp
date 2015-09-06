@@ -47,7 +47,7 @@ int main(){
     //parameters worth changing.
     const int lengthOfCode = 8;
     const int derating = 2;           //this is the factor slow down that Oscar suggested.
-    const float decimation = 1;      //the amount the image is resized, makes performance better.
+    const float decimation = 0.125;      //the amount the image is resized, makes performance better.
     const float secondsToProcess = 2;
     const float FPSCamera = 118.4;
     const int periodsToAverage = 8;
@@ -135,7 +135,7 @@ int main(){
     //    }
     cout<< minSaved << "   "<< maxSaved << endl;
 
-    //haveALook(lengthOfBuffers,corrBuffer,imageBuffer,av, derating);
+    haveALook(lengthOfBuffers,corrBuffer,imageBuffer,av, derating);
 
     return 0;
 }
