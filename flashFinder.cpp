@@ -15,9 +15,14 @@ vector<Mat> autoCorrelate (vector<Mat> input,int offset);
 void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuffer);
 Mat findAvOfVid(string fileName,float decimation);
 
+
 void CallBackFunc(int event, int x, int y, int flags, void* userdata);
 void drawGraph(vector<float> corrSeries, string WinName);
 //cheeky global variables
+
+
+void CallBackFunc(int event, int x, int y, int flags, void* userdata);
+void drawGraph(vector<float> corrSeries, string WinName);
 
 
 struct getFrameFunctor{
@@ -39,7 +44,6 @@ struct getFrameFunctor{
 		return frameFloat;
 	}
 };
-
 
 
 int main(){
