@@ -47,7 +47,7 @@ int main(){
     //parameters worth changing.
     const int lengthOfCode = 8;
     const int derating = 2;           //this is the factor slow down that Oscar suggested.
-    const double decimation = 1;      //the amount the image is resized, makes performance better.
+    const double decimation = 0.1;      //the amount the image is resized, makes performance better.
     const double secondsToProcess = 2.5;
     const double FPSCamera = 118.4;
     const int periodsToAverage = 8;
@@ -108,9 +108,9 @@ int main(){
         imageBuffer.at(i%lengthOfBuffers) = frame-av;
         //frame.copyTo(imageBuffer.at(i%lengthOfBuffers));
 
-        cout<<i<<" "<<flush;
-        if (i%20 == 0) cout<<endl;
+        if (i%20 == 0) cout<<i<<" "<<flush;
     }
+    cout <<endl;
 
     Mat averageCorr(corrBuffer.at(0).size(),CV_64FC1, 0.0);
     for(int i = 0; i< lengthOfBuffers; i++){
