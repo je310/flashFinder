@@ -53,8 +53,8 @@ int main(){
     const int periodsToAverage = 8;
     //string fileName = "Videos/glowFlash.mp4";
     //string fileName = "fakeVideos/video.mp4";
-    //string fileName = "Videos/fasterFlash.mp4";
-    string fileName = "Videos/slowerFlash.mp4";
+    string fileName = "Videos/fasterFlash.mp4";
+    //string fileName = "Videos/slowerFlash.mp4";
     //string fileName = "Videos/longglowFlash.mp4";
 
 
@@ -203,7 +203,7 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
             cout<<myWin<<endl;
         }
         if(k == 'h'){
-            vector<double> code = corrCode<8>("11110000", derating);
+            vector<double> code = corrCode<8>("10101010", derating);
             drawGraph(code, "the code");
             findCodedness(corrBuffer, "heatMap", 0.1,code ,veryCor,factorHigh,factorLow,maxedCorr,clickLocationOld);
         }
