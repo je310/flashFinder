@@ -141,6 +141,7 @@ int main(){
             }
         }
     }
+    haveALook(lengthOfBuffers,imageBuffer, imageBuffer,imageBuffer.at(0),derating);
 
 
 
