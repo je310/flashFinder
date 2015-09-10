@@ -127,7 +127,7 @@ int main(){
             }
             Mat pixelsft;
             dft(pixels,pixelsft,DFT_COMPLEX_OUTPUT);
-            for (int j = 0; j != pixelsft.cols; j +=2){
+            for (int j = 0; j <pixelsft.cols; j +=2){
                 complex<float> p (    pixelsft.at<float>(0,j),     pixelsft.at<float>(0,j+1));
                 complex<float> c (spreadcodeft.at<float>(0,j), spreadcodeft.at<float>(0,j+1));
                 complex<float> o = p*c;
