@@ -130,7 +130,7 @@ int main(){
             for (int j = 0; j <pixelsft.cols; j +=2){
                 complex<float> p (    pixelsft.at<float>(0,j),     pixelsft.at<float>(0,j+1));
                 complex<float> c (spreadcodeft.at<float>(0,j), spreadcodeft.at<float>(0,j+1));
-                complex<float> o = p*c;
+                complex<float> o (p*c);
                 pixelsft.at<float>(0,j  ) = o.real();
                 pixelsft.at<float>(0,j+1) = o.imag();
             }
