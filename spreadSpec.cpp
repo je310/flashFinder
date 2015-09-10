@@ -119,10 +119,9 @@ int main(){
         imageBuffer.at(i) = getFrame(cap);
     }
 
-
-    Mat pixels = Mat(1,lengthOfBuffers,CV_32FC1,0.0f);
-    for(int x = 0; x < imageBuffer.at(0).rows; x++){
-        for(int y = 0; y < imageBuffer.at(0).cols; y++){
+    Mat pixels = Mat(Size(1,lengthOfBuffers),CV_32FC1,0.0f);
+    for(int x = 0; x != imageBuffer.at(0).rows; x++){
+        for(int y = 0; y != imageBuffer.at(0).cols; y++){
             for(int i = 0; i < lengthOfBuffers; i++){
                 pixels.at<float>(0,i) = imageBuffer.at(i).at<float>(x,y);
             }
@@ -142,6 +141,7 @@ int main(){
             }
         }
     }
+    haveALook(lengthOfBuffers,imageBuffer, imageBuffer,imageBuffer.at(0),derating);
 
 
 
