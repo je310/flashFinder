@@ -47,15 +47,16 @@ int main(){
     //parameters worth changing.
     const int lengthOfCode = 8;
     const int derating = 2;           //this is the factor slow down that Oscar suggested.
-    const double decimation = 0.1;      //the amount the image is resized, makes performance better.
-    const double secondsToProcess = 2.5;
+    const double decimation = 1;      //the amount the image is resized, makes performance better.
+    const double secondsToProcess = 15;
     const double FPSCamera = 118.4;
     const int periodsToAverage = 8;
     //string fileName = "Videos/glowFlash.mp4";
     //string fileName = "fakeVideos/video.mp4";
-    string fileName = "Videos/fasterFlash.mp4";
+    //string fileName = "Videos/fasterFlash.mp4";
     //string fileName = "Videos/slowerFlash.mp4";
     //string fileName = "Videos/longglowFlash.mp4";
+    string fileName = "Videos/farFlash.mp4";
 
 
 
@@ -203,7 +204,7 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
             cout<<myWin<<endl;
         }
         if(k == 'h'){
-            vector<double> code = corrCode<8>("10101010", derating);
+            vector<double> code = corrCode<8>("11110000", derating);
             drawGraph(code, "the code");
             findCodedness(corrBuffer, "heatMap", 0.1,code ,veryCor,factorHigh,factorLow,maxedCorr,clickLocationOld);
         }
