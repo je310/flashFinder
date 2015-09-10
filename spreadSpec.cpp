@@ -241,7 +241,7 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
         if(k == 'd'){
             veryCor = ! veryCor;
         }
-        imshow("corrBuffer",corrBuffer.at(myWin));
+        imshow("corrBuffer",corrBuffer.at(myWin)/255);
         imshow("averageImage",av/255);
     }
     return;
