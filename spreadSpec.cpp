@@ -119,9 +119,10 @@ int main(){
         imageBuffer.at(i) = getFrame(cap);
     }
 
-    Mat pixels = Mat(Size(1,lengthOfBuffers),CV_32FC1,0.0f);
-    for(int x = 0; x != imageBuffer.at(0).rows; x++){
-        for(int y = 0; y != imageBuffer.at(0).cols; x++){
+
+    Mat pixels = Mat(1,lengthOfBuffers,CV_32FC1,0.0f);
+    for(int x = 0; x < imageBuffer.at(0).rows; x++){
+        for(int y = 0; y < imageBuffer.at(0).cols; y++){
             for(int i = 0; i < lengthOfBuffers; i++){
                 pixels.at<float>(0,i) = imageBuffer.at(i).at<float>(x,y);
             }
@@ -130,7 +131,7 @@ int main(){
             for (int j = 0; j <pixelsft.cols; j +=2){
                 complex<float> p (    pixelsft.at<float>(0,j),     pixelsft.at<float>(0,j+1));
                 complex<float> c (spreadcodeft.at<float>(0,j), spreadcodeft.at<float>(0,j+1));
-                complex<float> o = p*c;
+                complex<float> o (p*c);
                 pixelsft.at<float>(0,j  ) = o.real();
                 pixelsft.at<float>(0,j+1) = o.imag();
             }
