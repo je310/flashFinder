@@ -86,6 +86,10 @@ int main(){
 
 
     cv::vector <double> spreadcode = spreadGenerator<bits>(XorFrom, derating);
+    for(int i = 0; i < spreadcode.size(); i= i+2){
+        cout << spreadcode.at(i);
+    }
+    cout<<endl;
 
     getFrameFunctor getFrame(decimation);
     vector<Mat> imageBuffer(lengthOfBuffers);    //buffer with grey images

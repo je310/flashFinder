@@ -48,7 +48,7 @@ int main(){
     const int lengthOfCode = 8;
     const int derating = 2;           //this is the factor slow down that Oscar suggested.
     const double decimation = 1;      //the amount the image is resized, makes performance better.
-    const double secondsToProcess = 15;
+    const double secondsToProcess = 5;
     const double FPSCamera = 118.4;
     const int periodsToAverage = 8;
     //string fileName = "Videos/glowFlash.mp4";
@@ -56,7 +56,8 @@ int main(){
     //string fileName = "Videos/fasterFlash.mp4";
     //string fileName = "Videos/slowerFlash.mp4";
     //string fileName = "Videos/longglowFlash.mp4";
-    string fileName = "Videos/farFlash.mp4";
+    //string fileName = "Videos/farFlash.mp4";
+    string fileName = "Videos/2OutsideFlash.mp4";
 
 
 
