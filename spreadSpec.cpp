@@ -53,7 +53,7 @@ int main(){
     const vector<size_t> XorFrom = {7,6};
     const int lengthOfCode = pow(2,bits)-1;
     const int derating = 2;           //this is the factor slow down that Oscar suggested.
-    const double decimation = 0.1;      //the amount the image is resized, makes performance better.
+    const double decimation = 0.25;      //the amount the image is resized, makes performance better.
     const double secondsToProcess = 2.5;
     const double FPSCamera = 118.4;
     //string fileName = "Videos/glowFlash.mp4";
@@ -103,10 +103,9 @@ int main(){
 	cout << " max: " << Amax << " maxframe: " << results.Phase.at<double>(y,x) << endl;
 
 	
-	namedWindow("Map", WINDOW_NORMAL);	
 	Mat phase;
 	results.Phase.convertTo(phase, CV_8UC1);
-	applyColorMap(phase/lengthOfBuffers*255.0, phase, COLORMAP_JET);
+	applyColorMap(phase/lengthOfBuffers*255.0, phase, COLORMAP_HSV);
 	phase.convertTo(phase,CV_64FC3);
 	phase /= 255;
 
@@ -115,6 +114,7 @@ int main(){
 	cvtColor(amplitude, amplitude, CV_GRAY2BGR);
 	amplitude.convertTo(amplitude, CV_64FC3);
 
+	namedWindow("Map", WINDOW_NORMAL);	
 	imshow("Map", phase.mul(amplitude));//(results.Amplitude-Amin)/(Amax-Amin));
 
 	for (char k = '\0'; k != 'q'; k = waitKey(0));
@@ -170,7 +170,6 @@ crosscorrstruct crossCorr(vector <Mat> imageBuffer, vector<double> spreadcode){
                 pixelsftin[i][0] = imageBuffer.at(i).at<double>(x,y)/255.0;
                 pixelsftin[i][1] = 0;
             }
-
 
 			fftw_execute(forward);
 
