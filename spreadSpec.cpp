@@ -66,7 +66,8 @@ int main(){
     //string fileName = "Videos/slowerFlash.mp4";
     //string fileName = "Videos/longglowFlash.mp4";
     //string fileName = "Videos/Spreadcode.mp4";
-    string fileName = "Videos/longOutsideFlash.mp4";
+    //string fileName = "Videos/longOutsideFlash.mp4";
+    string fileName = "Videos/1OutsideFlash.mp4";
     //string fileName = "Videos/insideFlash.mp4";
 
 
