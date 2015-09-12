@@ -66,8 +66,8 @@ int main(){
     //string fileName = "Videos/slowerFlash.mp4";
     //string fileName = "Videos/longglowFlash.mp4";
     //string fileName = "Videos/Spreadcode.mp4";
-    //string fileName = "Videos/longOutsideFlash.mp4";
-    string fileName = "Videos/insideFlash.mp4";
+    string fileName = "Videos/longOutsideFlash.mp4";
+    //string fileName = "Videos/insideFlash.mp4";
 
 
 
@@ -166,9 +166,11 @@ int main(){
                 minIdx =i;
             }
         }
+        minMaxIdx(imageBuffer.at(maxIdx), &AminAPhase, &AmaxAPhase, &xAPhase, &yAPhase);
+        MaxedPhase = (imageBuffer.at(maxIdx)-AminAPhase)/(AmaxAPhase - AminAPhase);
         for(int i = 0; i < imageBuffer.at(maxIdx).rows; i++){
             for(int j= 0; j < imageBuffer.at(maxIdx).cols; j++){
-                MaxedPhase.at<double>(i,j) = log(imageBuffer.at(maxIdx).at<double>(i,j)+1);
+                MaxedPhase.at<double>(i,j) = log(MaxedPhase.at<double>(i,j)+1);
             }
         }
         double LogMin = 10e10;
