@@ -3,9 +3,12 @@
 #include <complex>
 #include <iostream>
 #include <vector>
+
 #include <cv.h>
 #include <highgui.h>
 #include <unistd.h>
+
+#include <fftw3.h>
 
 //namespaces
 using namespace std;
@@ -42,8 +45,8 @@ struct getFrameFunctor{
 };
 
 template <unsigned int N>
-vector<float> spreadGenerator(vector <size_t> XorFrom) {
-     vector<float> out;
+vector<double> spreadGenerator(vector <size_t> XorFrom, int derating) {
+     vector<double> out;
      bitset<N> initialState = 1;
      bitset<N> lsfr = initialState;
 
@@ -60,7 +63,8 @@ vector<float> spreadGenerator(vector <size_t> XorFrom) {
          lsfr <<= 1;
          lsfr[0] = bit;
 
-         out.push_back(bit);
+         for (int d = 0; d != derating; d++)
+			 out.push_back(bit);
      } while(initialState != lsfr);
 
      return out;
@@ -105,14 +109,27 @@ int main(){
     //declare variables
     //namedWindow("looking",WINDOW_NORMAL );
 
-    cv::vector <float> spreadcode = spreadGenerator<bits>(XorFrom);
-    cout << spreadcode.size() << endl;
-    Mat spreadcodemat = Mat(Size(1,spreadcode.size()),CV_32FC1,0.0f);
+
+    cv::vector <double> spreadcode = spreadGenerator<bits>(XorFrom, derating);
+	fftw_complex *spreadcodeftin, *spreadcodeftout;
+	spreadcodeftin  = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * spreadcode.size());
+	spreadcodeftout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * spreadcode.size());
+	fftw_plan p;
+
     for(size_t i = 0; i != spreadcode.size(); i++){
-        spreadcodemat.at<float>(0,i) = spreadcode.at(i);
+        spreadcodeftin[i][0] = spreadcode.at(i);
+        spreadcodeftin[i][1] = 0;
     }
-    Mat spreadcodeft;
-    dft(spreadcodemat, spreadcodeft, DFT_COMPLEX_OUTPUT);
+	p = fftw_plan_dft_1d( spreadcode.size()
+						, spreadcodeftin, spreadcodeftout
+						, FFTW_FORWARD, FFTW_ESTIMATE
+						);
+	fftw_execute(p); 
+	spreadcodeftout[0][0] = 0; // set DC offset to 0
+	spreadcodeftout[0][1] = 0;
+	fftw_destroy_plan(p);
+	fftw_free(spreadcodeftin); 
+
 
     getFrameFunctor getFrame(decimation);
     vector<Mat> imageBuffer(lengthOfBuffers);    //buffer with grey images
@@ -121,39 +138,71 @@ int main(){
     }
     haveALook(lengthOfBuffers,imageBuffer, imageBuffer,imageBuffer.at(0),derating);
 
-    Mat pixels = Mat(Size(1,lengthOfBuffers),CV_32FC1,0.0f);
+	fftw_complex *pixelsftin, *pixelsftout;
+	pixelsftin  = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * lengthOfBuffers);
+	pixelsftout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * lengthOfBuffers);
+	fftw_plan(forward);
+	forward = fftw_plan_dft_1d( lengthOfBuffers
+						      , pixelsftin, pixelsftout
+						      , FFTW_FORWARD, FFTW_ESTIMATE
+						      );
+	fftw_plan(backward);
+	backward= fftw_plan_dft_1d( lengthOfBuffers
+						      , pixelsftin, pixelsftout
+						      , FFTW_BACKWARD, FFTW_ESTIMATE
+						      );
+
     for(int x = 0; x != imageBuffer.at(0).rows; x++){
         for(int y = 0; y != imageBuffer.at(0).cols; y++){
             for(int i = 0; i < lengthOfBuffers; i++){
-                pixels.at<float>(0,i) = imageBuffer.at(i).at<float>(x,y);
+                pixelsftin[i][0] = imageBuffer.at(i).at<double>(x,y)/255.0;
+                pixelsftin[i][1] = 0;
             }
-            Mat pixelsft;
-            dft(pixels,pixelsft,DFT_COMPLEX_OUTPUT);
-            cout << pixelsft.channels()<< endl;
-//            cout << pixels.rows << endl;
-//            cout << pixelsft.rows << endl;
-//            for(int j = 0; j < pixelsft.rows; j= j+2){
-//                cout << pixels.at<float>(0,j)<< "  "<< pixels.at<float>(0,j+1)<<"i?"<< endl;
-//            }
-//            for (int j = 0; j <pixelsft.cols; j +=2){
-//                complex<float> p (    pixelsft.at<float>(0,j),     pixelsft.at<float>(0,j+1));
-//                complex<float> c (spreadcodeft.at<float>(0,j), spreadcodeft.at<float>(0,j+1));
-//                complex<float> o (p*c);
-//                pixelsft.at<float>(0,j  ) = o.real();
-//                pixelsft.at<float>(0,j+1) = o.imag();
-//            }
-            dft(pixelsft,pixels,DFT_COMPLEX_OUTPUT|DFT_INVERSE);
+
+
+			fftw_execute(forward);
+
+            for (int j = 0; j < lengthOfBuffers; j++){
+                complex<double> p (    pixelsftout[j][0], -pixelsftout    [j][1]);
+                complex<double> c (spreadcodeftout[j][0],  spreadcodeftout[j][1]);
+                complex<double> o = p*c;
+                pixelsftin[j][0] = o.real();
+                pixelsftin[j][1] = o.imag();
+            }
+
+			fftw_execute(backward);
+
 
             for(int i = 0; i < lengthOfBuffers; i++){
-                imageBuffer.at(i).at<float>(x,y) = pixels.at<float>(0,i);
+                imageBuffer.at(i).at<double>(x,y) = pixelsftout[i][0];
             }
         }
     }
+
+	fftw_destroy_plan(forward);
+	fftw_destroy_plan(backward);
+	fftw_free(pixelsftin);
+	fftw_free(pixelsftout);
+
+	double gmax = 1e-8, gmin = 1e8;
+	int maxframe = 0;
+	for(int i = 0; i != lengthOfBuffers; i++){
+		double min, max;
+		minMaxLoc(imageBuffer.at(i), &min, &max);
+		if (min < gmin) gmin = min;
+		if (max > gmax) {
+			gmax = max;
+			maxframe = i;
+		}
+	}
+
+	cout << "min: " << gmin << " max: " << gmax << " maxframe: " << maxframe << endl;
+
+	fftw_free(spreadcodeftout);
+
     haveALook(lengthOfBuffers,imageBuffer, imageBuffer,imageBuffer.at(0),derating);
 
-
-
-
+	return 0;
 }
 
 //function implementations
@@ -249,7 +298,7 @@ void haveALook(int lengthOfBuffers, vector<Mat> corrBuffer, vector<Mat> imageBuf
         if(k == 'd'){
             veryCor = ! veryCor;
         }
-        imshow("corrBuffer",corrBuffer.at(myWin)/255);
+        imshow("corrBuffer",corrBuffer.at(myWin)/(255));
         imshow("averageImage",av/255);
     }
     return;
