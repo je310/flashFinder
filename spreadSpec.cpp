@@ -106,6 +106,7 @@ int main(){
     //namedWindow("looking",WINDOW_NORMAL );
 
     cv::vector <float> spreadcode = spreadGenerator<bits>(XorFrom);
+    cout << spreadcode.size() << endl;
     Mat spreadcodemat = Mat(Size(1,spreadcode.size()),CV_32FC1,0.0f);
     for(size_t i = 0; i != spreadcode.size(); i++){
         spreadcodemat.at<float>(0,i) = spreadcode.at(i);
@@ -118,6 +119,7 @@ int main(){
     for(int i = 0; i < lengthOfBuffers; i++){
         imageBuffer.at(i) = getFrame(cap);
     }
+    haveALook(lengthOfBuffers,imageBuffer, imageBuffer,imageBuffer.at(0),derating);
 
     Mat pixels = Mat(Size(1,lengthOfBuffers),CV_32FC1,0.0f);
     for(int x = 0; x != imageBuffer.at(0).rows; x++){
@@ -127,13 +129,19 @@ int main(){
             }
             Mat pixelsft;
             dft(pixels,pixelsft,DFT_COMPLEX_OUTPUT);
-            for (int j = 0; j <pixelsft.cols; j +=2){
-                complex<float> p (    pixelsft.at<float>(0,j),     pixelsft.at<float>(0,j+1));
-                complex<float> c (spreadcodeft.at<float>(0,j), spreadcodeft.at<float>(0,j+1));
-                complex<float> o (p*c);
-                pixelsft.at<float>(0,j  ) = o.real();
-                pixelsft.at<float>(0,j+1) = o.imag();
-            }
+            cout << pixelsft.channels()<< endl;
+//            cout << pixels.rows << endl;
+//            cout << pixelsft.rows << endl;
+//            for(int j = 0; j < pixelsft.rows; j= j+2){
+//                cout << pixels.at<float>(0,j)<< "  "<< pixels.at<float>(0,j+1)<<"i?"<< endl;
+//            }
+//            for (int j = 0; j <pixelsft.cols; j +=2){
+//                complex<float> p (    pixelsft.at<float>(0,j),     pixelsft.at<float>(0,j+1));
+//                complex<float> c (spreadcodeft.at<float>(0,j), spreadcodeft.at<float>(0,j+1));
+//                complex<float> o (p*c);
+//                pixelsft.at<float>(0,j  ) = o.real();
+//                pixelsft.at<float>(0,j+1) = o.imag();
+//            }
             dft(pixelsft,pixels,DFT_COMPLEX_OUTPUT|DFT_INVERSE);
 
             for(int i = 0; i < lengthOfBuffers; i++){
