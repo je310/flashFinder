@@ -53,21 +53,26 @@ int main(){
     const vector<size_t> XorFrom = {7,6};
     const int lengthOfCode = pow(2,bits)-1;
     const int derating = 2;           //this is the factor slow down that Oscar suggested.
-    const double decimation = 0.1;      //the amount the image is resized, makes performance better.
-    const double secondsToProcess = 2.5;
+    const double decimation = 1;      //the amount the image is resized, makes performance better.
+    const double secondsToProcess = 21;
     const double FPSCamera = 118.4;
+    bool useAll = 1;
     //string fileName = "Videos/glowFlash.mp4";
     //string fileName = "fakeVideos/video.mp4";
     //string fileName = "Videos/fasterFlash.mp4";
     //string fileName = "Videos/slowerFlash.mp4";
     //string fileName = "Videos/longglowFlash.mp4";
-    string fileName = "Videos/Spreadcode.mp4";
+    //string fileName = "Videos/Spreadcode.mp4";
+    string fileName = "Videos/longOutsideFlash.mp4";
 
 
 
     //derived less interesting variables;
     int numberToDo = int(FPSCamera * secondsToProcess);
+
     int lengthOfBuffers = lengthOfCode * derating;
+    numberToDo = int(numberToDo / lengthOfBuffers)* lengthOfBuffers;
+
     //open file
     VideoCapture cap(fileName.c_str());
     if(!cap.isOpened()) {
@@ -75,6 +80,8 @@ int main(){
         return -1; // check if we succeeded
     }
     int NoOfFrames = cap.get(CV_CAP_PROP_FRAME_COUNT);
+    if (useAll) numberToDo = NoOfFrames;
+
     double FPS = cap.get(CV_CAP_PROP_FPS);
     cout<<"The loaded file has "<< NoOfFrames << " frames. These were recorded at "<< FPS<<" FPS."<< endl;
     if(NoOfFrames < numberToDo){
@@ -93,8 +100,16 @@ int main(){
 
     getFrameFunctor getFrame(decimation);
     vector<Mat> imageBuffer(lengthOfBuffers);    //buffer with grey images
+    cout << numberToDo<< endl;
     for(int i = 0; i < lengthOfBuffers; i++){
         imageBuffer.at(i) = getFrame(cap);
+    }
+    namedWindow("Image", WINDOW_NORMAL);
+    imshow("Image", imageBuffer.at(0)/255);
+
+    cout<< "here"<< endl;
+    for(int i =lengthOfBuffers; i < numberToDo; i++){
+        imageBuffer.at(i%lengthOfBuffers) += getFrame(cap);
     }
 
 	crosscorrstruct results = crossCorr(imageBuffer, spreadcode);
