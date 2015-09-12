@@ -84,6 +84,7 @@ int main(){
     cout <<"set up video stream"<<endl;
     //declare variables
 
+
     cv::vector <double> spreadcode = spreadGenerator<bits>(XorFrom, derating);
 
     getFrameFunctor getFrame(decimation);
@@ -134,6 +135,7 @@ crosscorrstruct crossCorr(vector <Mat> imageBuffer, vector<double> spreadcode){
 	spreadcodeftin  = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * spreadcode.size());
 	spreadcodeftout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * spreadcode.size());
 	fftw_plan p;
+
     for(size_t i = 0; i != spreadcode.size(); i++){
         spreadcodeftin[i][0] = spreadcode.at(i);
         spreadcodeftin[i][1] = 0;
@@ -173,6 +175,7 @@ crosscorrstruct crossCorr(vector <Mat> imageBuffer, vector<double> spreadcode){
                 pixelsftin[i][0] = imageBuffer.at(i).at<double>(x,y)/255.0;
                 pixelsftin[i][1] = 0;
             }
+
 
 			fftw_execute(forward);
 
