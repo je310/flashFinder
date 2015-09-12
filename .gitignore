@@ -3,6 +3,7 @@ spreadSpec
 *.out
 *.user
 *.cmake
+!Find*.cmake
 CMakeFiles/
 *Cache.txt
 *~

@@ -1,0 +1,20 @@
+
+find_package(PkgConfig)
+pkg_check_modules(PC_FFTW3 QUIET fftw3)
+set(FFTW3_DEFINITIONS ${PC_FFTW3_CFLAGS_OTHER})
+
+find_path( FFTW3_INCLUDE_DIR fftw3.h
+	   HINTS ${PC_FFTW3_INCLUDEDIR} ${PC_FFTW3_INCLUDE_DIRS}
+	   PATH_SUFFIXES fftw3 )
+
+find_library( FFTW3_LIBRARY NAMES fftw3
+			  HINTS ${PC_FFTW3_LIBDIR} ${PC_FFTW3_LIBRARY_DIRS} )
+
+set(FFTW3_LIBRARIES ${FFTW3_LIBRARY})
+set(FFTW3_INCLUDE_DIRS ${FFTW3_INCLUDEDIR})
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(FFTW3 DEFAULT_MSG FFTW3_LIBRARY FFTW3_INCLUDE_DIR)
+
+mark_as_advanced(FFTW3_INCLUDE_DIR FFTW3_LIBRARY)
+
