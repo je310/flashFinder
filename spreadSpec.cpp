@@ -115,11 +115,6 @@ int main(){
 	cvtColor(amplitude, amplitude, CV_GRAY2BGR);
 	amplitude.convertTo(amplitude, CV_64FC3);
 
-	cout << phase.type() << " " << amplitude.type() << endl;
-	cout << phase.channels() << " " << amplitude.channels() << endl;
-	cout << phase.cols << " " << amplitude.cols << endl;
-	cout << phase.rows << " " << amplitude.rows << endl;
-
 	imshow("Map", phase.mul(amplitude));//(results.Amplitude-Amin)/(Amax-Amin));
 
 	for (char k = '\0'; k != 'q'; k = waitKey(0));
