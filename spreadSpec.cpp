@@ -45,6 +45,7 @@ struct crosscorrstruct{
 
 template <unsigned int N> vector<double> spreadGenerator(vector <size_t> XorFrom, int derating);
 crosscorrstruct crossCorr(vector <Mat> imageBuffer, vector<double> spreadcode);
+void CallBackFunc(int event, int x, int y, int flags, void* clickLocation);
 
 
 int main(){
@@ -54,7 +55,7 @@ int main(){
     const int lengthOfCode = pow(2,bits)-1;
     const int derating = 2;           //this is the factor slow down that Oscar suggested.
 
-    const double decimation = 1;      //the amount the image is resized, makes performance better.
+    const double decimation = 0.25;      //the amount the image is resized, makes performance better.
     const double secondsToProcess = 21;
 
     const double FPSCamera = 118.4;
@@ -65,7 +66,8 @@ int main(){
     //string fileName = "Videos/slowerFlash.mp4";
     //string fileName = "Videos/longglowFlash.mp4";
     //string fileName = "Videos/Spreadcode.mp4";
-    string fileName = "Videos/longOutsideFlash.mp4";
+    //string fileName = "Videos/longOutsideFlash.mp4";
+    string fileName = "Videos/insideFlash.mp4";
 
 
 
@@ -73,7 +75,7 @@ int main(){
     int numberToDo = int(FPSCamera * secondsToProcess);
 
     int lengthOfBuffers = lengthOfCode * derating;
-    numberToDo = int(numberToDo / lengthOfBuffers)* lengthOfBuffers;
+
 
     //open file
     VideoCapture cap(fileName.c_str());
@@ -83,6 +85,7 @@ int main(){
     }
     int NoOfFrames = cap.get(CV_CAP_PROP_FRAME_COUNT);
     if (useAll) numberToDo = NoOfFrames;
+    numberToDo = int(numberToDo / lengthOfBuffers)* lengthOfBuffers;
 
     double FPS = cap.get(CV_CAP_PROP_FPS);
     cout<<"The loaded file has "<< NoOfFrames << " frames. These were recorded at "<< FPS<<" FPS."<< endl;
@@ -108,7 +111,7 @@ int main(){
     }
     namedWindow("Image", WINDOW_NORMAL);
     imshow("Image", imageBuffer.at(0)/255);
-
+    namedWindow("Maxed Phase", WINDOW_NORMAL);
     cout<< "here"<< endl;
     for(int i =lengthOfBuffers; i < numberToDo; i++){
         imageBuffer.at(i%lengthOfBuffers) += getFrame(cap);
@@ -117,12 +120,20 @@ int main(){
 	crosscorrstruct results = crossCorr(imageBuffer, spreadcode);
 	
 	double Amin,Amax;
+    double AminAPhase,AmaxAPhase;
 	int x,y;
-
-	minMaxIdx(results.Amplitude, &Amin, &Amax, &x, &y); 
+    int xAPhase,yAPhase;
+//    for(int i = 0; i< results.Amplitude.cols; i++){
+//        for(int j = 0; j < results.Amplitude.rows; j++){
+//            results.Amplitude.at<double>(j,i) = log(results.Amplitude.at<double>(j,i)+1);
+//        }
+//    }
+    minMaxIdx(results.Amplitude, &Amin, &Amax, &x, &y);
 
 	cout << " max: " << Amax << " maxframe: " << results.Phase.at<double>(y,x) << endl;
 
+    minMaxIdx(imageBuffer.at(results.Phase.at<double>(y,x)), &AminAPhase, &AmaxAPhase, &xAPhase, &yAPhase);
+    imshow("Maxed Phase", (imageBuffer.at(results.Phase.at<double>(y,x))-AminAPhase)/(AmaxAPhase - AminAPhase));
 	
 	Mat phase;
 	results.Phase.convertTo(phase, CV_8UC1);
@@ -136,9 +147,37 @@ int main(){
 	amplitude.convertTo(amplitude, CV_64FC3);
 
 	namedWindow("Map", WINDOW_NORMAL);	
+    Point clickLocation;
+    setMouseCallback("Map", CallBackFunc, &clickLocation);
 	imshow("Map", phase.mul(amplitude));//(results.Amplitude-Amin)/(Amax-Amin));
-
-	for (char k = '\0'; k != 'q'; k = waitKey(0));
+    Mat MaxedPhase(imageBuffer.at(0).size(), CV_64FC1,0.0);
+    for (char k = '\0'; k != 'q'; k = waitKey(1)){
+        double thisMin = 10e10;
+        double thisMax = -thisMin;
+        int minIdx = 0;
+        int maxIdx = 0;
+        for(int i = 0; i < lengthOfBuffers; i++){
+            if(imageBuffer.at(i).at<double>(clickLocation)> thisMax){
+                thisMax = imageBuffer.at(i).at<double>(clickLocation);
+                maxIdx = i;
+            }
+            if(imageBuffer.at(i).at<double>(clickLocation)< thisMin){
+                thisMin = imageBuffer.at(i).at<double>(clickLocation);
+                minIdx =i;
+            }
+        }
+        for(int i = 0; i < imageBuffer.at(maxIdx).rows; i++){
+            for(int j= 0; j < imageBuffer.at(maxIdx).cols; j++){
+                MaxedPhase.at<double>(i,j) = log(imageBuffer.at(maxIdx).at<double>(i,j)+1);
+            }
+        }
+        double LogMin = 10e10;
+        double LogMax = -LogMin;
+        minMaxIdx(MaxedPhase, &LogMin, &LogMax, &xAPhase, &yAPhase);
+        minMaxIdx(imageBuffer.at(maxIdx), &AminAPhase, &AmaxAPhase, &xAPhase, &yAPhase);
+        imshow("Maxed Phase", (imageBuffer.at(maxIdx)-AminAPhase)/(AmaxAPhase - AminAPhase));
+        imshow("Loged Maxed Phase", ((MaxedPhase-LogMin)/(LogMax - LogMin)));
+    }
 
 	return 0;
 }
@@ -207,7 +246,7 @@ crosscorrstruct crossCorr(vector <Mat> imageBuffer, vector<double> spreadcode){
             for(int i = 0; i < imageBuffer.size(); ++i){
                 imageBuffer.at(i).at<double>(x,y) = pixelsftout[i][0];
 				if (pixelsftout[i][0] > out.Amplitude.at<double>(x,y)){
-					out.Amplitude.at<double>(x,y) = pixelsftout[i][0];
+                    out.Amplitude.at<double>(x,y) = pixelsftout[i][0];
 					out.Phase.at<double>(x,y) = i;
 				}
             }
@@ -249,3 +288,22 @@ vector<double> spreadGenerator(vector <size_t> XorFrom, int derating) {
      return out;
 }
 
+
+void CallBackFunc(int event, int x, int y, int flags, void* clickLocation){
+    Point* thisLocation = (Point*) clickLocation;
+    if  ( event == EVENT_LBUTTONDOWN ){
+        cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+        thisLocation->x = x;
+        thisLocation->y = y;
+    }
+    else if  ( event == EVENT_RBUTTONDOWN ){
+        cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+    }
+    else if  ( event == EVENT_MBUTTONDOWN ){
+        cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+    }
+    else if ( event == EVENT_MOUSEMOVE ){
+
+
+    }
+}
