@@ -110,6 +110,7 @@ int main(){
     getFrameFunctor getFrame(decimation);
     vector<Mat> imageBuffer(lengthOfBuffers);    //buffer with grey images
     cout << numberToDo<< endl;
+
     for(int i = 0; i < lengthOfBuffers; i++){
         imageBuffer.at(i) = getFrame(cap);
     }
@@ -117,8 +118,12 @@ int main(){
     imshow("Image", imageBuffer.at(0)/255);
     namedWindow("Maxed Phase", WINDOW_NORMAL);
     cout<< "here"<< endl;
+    Mat framein;
+    //#pragma omp parallel for
     for(int i =lengthOfBuffers; i < numberToDo; i++){
-        imageBuffer.at(i%lengthOfBuffers) += getFrame(cap);
+        #pragma omp critical
+        framein = getFrame(cap);
+        imageBuffer.at(i%lengthOfBuffers) += framein;
     }
 
 	crosscorrstruct results = crossCorr(imageBuffer, spreadcode);
@@ -140,17 +145,18 @@ int main(){
     imshow("Maxed Phase", (imageBuffer.at(results.Phase.at<double>(y,x))-AminAPhase)/(AmaxAPhase - AminAPhase));
     Mat total = Mat(imageBuffer.at(0).size(), CV_64FC1,0.0);
     Mat peak = Mat(imageBuffer.at(0).size(), CV_64FC1,0.0);
-//#pragma omp parallel for
+#pragma omp parallel for
     for(int i = 0; i < lengthOfBuffers; i++){
         Mat square= Mat(imageBuffer.at(0).size(), CV_64FC1,0.0);
         multiply(imageBuffer.at(i),imageBuffer.at(i),square);
         total = total + square;
     }
-
+#pragma omp parallel for
     for(int i = 0; i < lengthOfBuffers; i++){
         for(int j = 0; j < imageBuffer.at(0).cols;  j ++){
             for(int k = 0; k < imageBuffer.at(0).rows; k++){
                 if(imageBuffer.at(i).at<double>(k,j)>peak.at<double>(k,j)){
+                    #pragma omp critical
                     peak.at<double>(k,j) = imageBuffer.at(i).at<double>(k,j);
                 }
             }
@@ -253,12 +259,14 @@ crosscorrstruct crossCorr(vector <Mat> imageBuffer, vector<double> spreadcode){
         fftw_complex *pixelsftin, *pixelsftout;
         pixelsftin  = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * imageBuffer.size());
         pixelsftout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * imageBuffer.size());
-        fftw_plan(forward);
+        fftw_plan forward;
+        #pragma omp critical
         forward = fftw_plan_dft_1d( imageBuffer.size()
                                   , pixelsftin, pixelsftout
                                   , FFTW_FORWARD, FFTW_ESTIMATE
                                   );
-        fftw_plan(backward);
+        fftw_plan backward;
+        #pragma omp critical
         backward= fftw_plan_dft_1d( imageBuffer.size()
                                   , pixelsftin, pixelsftout
                                   , FFTW_BACKWARD, FFTW_ESTIMATE
@@ -290,8 +298,8 @@ crosscorrstruct crossCorr(vector <Mat> imageBuffer, vector<double> spreadcode){
                 }
             }
         }
-//        fftw_destroy_plan(forward);
-//        fftw_destroy_plan(backward);
+        fftw_destroy_plan(forward);
+        fftw_destroy_plan(backward);
         fftw_free(pixelsftin);
         fftw_free(pixelsftout);
     }
