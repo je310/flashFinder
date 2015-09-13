@@ -71,9 +71,9 @@ int main(){
     //string fileName = "Videos/1OutsideFlash.mp4";
     //string fileName = "Videos/insideFlash.mp4";
     //string fileName = "Videos/fajitaFlash.mp4";
-    //string fileName = "Videos/glassFlash.mp4";
+    string fileName = "Videos/glassFlash.mp4";
     //string fileName = "Videos/middleFlash.mp4";
-    string fileName = "Videos/farLongerFlash.mp4";
+    //string fileName = "Videos/farLongerFlash.mp4";
 
     //derived less interesting variables;
     int numberToDo = int(FPSCamera * secondsToProcess);
@@ -118,13 +118,27 @@ int main(){
     imshow("Image", imageBuffer.at(0)/255);
     namedWindow("Maxed Phase", WINDOW_NORMAL);
     cout<< "here"<< endl;
-    Mat framein;
-    //#pragma omp parallel for
-    for(int i =lengthOfBuffers; i < numberToDo; i++){
-        #pragma omp critical
-        framein = getFrame(cap);
-        imageBuffer.at(i%lengthOfBuffers) += framein;
-    }
+    //Mat framein;
+//    //#pragma omp parallel for
+//    for(int i =lengthOfBuffers; i < numberToDo; i++){
+//        #pragma omp critical
+//        framein = getFrame(cap);
+//        imageBuffer.at(i%lengthOfBuffers) += framein;
+//    }
+
+    // not too sure  if this is faster, the iteration  over i could be made smaller to save memory.
+        vector<Mat> framein(lengthOfBuffers,Mat(imageBuffer.at(0).size(),CV_64FC1,0.0));
+    //vector<Mat> framein(lengthOfBuffers);
+        for(int i =1; i < numberToDo/lengthOfBuffers; i++){
+
+            for(int j =0; j<lengthOfBuffers; j++){
+                framein[j] = getFrame(cap);
+            }
+            #pragma omp parallel for
+            for(int k =0; k< lengthOfBuffers; k++){
+                 imageBuffer.at(((i*lengthOfBuffers)+k)%lengthOfBuffers) += framein[k];
+            }
+        }
 
 	crosscorrstruct results = crossCorr(imageBuffer, spreadcode);
 	
