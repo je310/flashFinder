@@ -4,11 +4,15 @@
 %Videofile = Spreadcode;
 %Videofile = insideFlash;
 %Videofile = x3OutsideFlash;
-Videofile = farLongerFlash;
+%Videofile = farLongerFlash;
 %Videofile = glassFlash;
 %Videofile = x1OutsideFlash(:,:,:,1:1000);
+Videofile = Goldcodes1and2;
 
-[N, codeUSf, fkernel] = gencodes(7, [7 6], [7 3 2 1]);
+[fkernel, codeUSf, code] = gengoldcode(7, [7 3], [7 3 2 1], 1); %polys from http://uk.mathworks.com/help/comm/ref/goldsequencegenerator.html
+%[fkernel, codeUSf, code] = genmsequence(7, [7 6]);
+%fkernel(2:10) = 0;
+%fkernel(end-8:end) = 0;
 despreadCube = processSSvideo(Videofile, fkernel);
 
 %implay(despreadCube./max(max(max(despreadCube))));
