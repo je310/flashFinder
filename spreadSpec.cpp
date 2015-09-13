@@ -55,7 +55,7 @@ int main(){
     const int lengthOfCode = pow(2,bits)-1;
     const int derating = 2;           //this is the factor slow down that Oscar suggested.
 
-    const double decimation = 0.25;      //the amount the image is resized, makes performance better.
+    const double decimation = 1;      //the amount the image is resized, makes performance better.
     const double secondsToProcess = 21;
 
     const double FPSCamera = 118.4;
@@ -67,10 +67,13 @@ int main(){
     //string fileName = "Videos/longglowFlash.mp4";
     //string fileName = "Videos/Spreadcode.mp4";
     //string fileName = "Videos/longOutsideFlash.mp4";
-    string fileName = "Videos/3OutsideFlash.mp4";
+    //string fileName = "Videos/3OutsideFlash.mp4";
+    //string fileName = "Videos/1OutsideFlash.mp4";
     //string fileName = "Videos/insideFlash.mp4";
-
-
+    //string fileName = "Videos/fajitaFlash.mp4";
+    //string fileName = "Videos/glassFlash.mp4";
+    //string fileName = "Videos/middleFlash.mp4";
+    string fileName = "Videos/farLongerFlash.mp4";
 
     //derived less interesting variables;
     int numberToDo = int(FPSCamera * secondsToProcess);
@@ -135,6 +138,30 @@ int main(){
 
     minMaxIdx(imageBuffer.at(results.Phase.at<double>(y,x)), &AminAPhase, &AmaxAPhase, &xAPhase, &yAPhase);
     imshow("Maxed Phase", (imageBuffer.at(results.Phase.at<double>(y,x))-AminAPhase)/(AmaxAPhase - AminAPhase));
+    Mat total = Mat(imageBuffer.at(0).size(), CV_64FC1,0.0);
+    Mat peak = Mat(imageBuffer.at(0).size(), CV_64FC1,0.0);
+//#pragma omp parallel for
+    for(int i = 0; i < lengthOfBuffers; i++){
+        Mat square= Mat(imageBuffer.at(0).size(), CV_64FC1,0.0);
+        multiply(imageBuffer.at(i),imageBuffer.at(i),square);
+        total = total + square;
+    }
+
+    for(int i = 0; i < lengthOfBuffers; i++){
+        for(int j = 0; j < imageBuffer.at(0).cols;  j ++){
+            for(int k = 0; k < imageBuffer.at(0).rows; k++){
+                if(imageBuffer.at(i).at<double>(k,j)>peak.at<double>(k,j)){
+                    peak.at<double>(k,j) = imageBuffer.at(i).at<double>(k,j);
+                }
+            }
+        }
+    }
+    Mat ratio;
+    multiply(peak,peak,peak);
+    divide(peak, total, ratio);
+    normalize(ratio,ratio,0,1,NORM_MINMAX);
+    namedWindow("added buffers", WINDOW_NORMAL);
+    imshow("added buffers", ratio);
 	
 	Mat phase;
 	results.Phase.convertTo(phase, CV_8UC1);
@@ -143,9 +170,12 @@ int main(){
 	phase /= 255;
 
 	Mat amplitude = (results.Amplitude-Amin)/(Amax-Amin);
+    multiply(amplitude, ratio,amplitude);
+    normalize(amplitude,amplitude,0,1,NORM_MINMAX);
 	amplitude.convertTo(amplitude, CV_32FC1);
 	cvtColor(amplitude, amplitude, CV_GRAY2BGR);
 	amplitude.convertTo(amplitude, CV_64FC3);
+
 
 	namedWindow("Map", WINDOW_NORMAL);	
     Point clickLocation;
@@ -167,19 +197,22 @@ int main(){
                 minIdx =i;
             }
         }
+        cout<< "max bin value here:"<< thisMax<< endl;
+        cout<< "after normalisation:"<< amplitude.at<double>(clickLocation);
         minMaxIdx(imageBuffer.at(maxIdx), &AminAPhase, &AmaxAPhase, &xAPhase, &yAPhase);
         MaxedPhase = (imageBuffer.at(maxIdx)-AminAPhase)/(AmaxAPhase - AminAPhase);
-        for(int i = 0; i < imageBuffer.at(maxIdx).rows; i++){
-            for(int j= 0; j < imageBuffer.at(maxIdx).cols; j++){
-                MaxedPhase.at<double>(i,j) = log(MaxedPhase.at<double>(i,j)+1);
-            }
-        }
-        double LogMin = 10e10;
-        double LogMax = -LogMin;
-        minMaxIdx(MaxedPhase, &LogMin, &LogMax, &xAPhase, &yAPhase);
+//        for(int i = 0; i < imageBuffer.at(maxIdx).rows; i++){
+//            for(int j= 0; j < imageBuffer.at(maxIdx).cols; j++){
+//                MaxedPhase.at<double>(i,j) = log(MaxedPhase.at<double>(i,j)+1);
+//            }
+//        }
+//        multiply(MaxedPhase,ratio,MaxedPhase);
+//        double LogMin = 10e10;
+//        double LogMax = -LogMin;
+//        minMaxIdx(MaxedPhase, &LogMin, &LogMax, &xAPhase, &yAPhase);
         minMaxIdx(imageBuffer.at(maxIdx), &AminAPhase, &AmaxAPhase, &xAPhase, &yAPhase);
         imshow("Maxed Phase", (imageBuffer.at(maxIdx)-AminAPhase)/(AmaxAPhase - AminAPhase));
-        imshow("Loged Maxed Phase", ((MaxedPhase-LogMin)/(LogMax - LogMin)));
+//        imshow("Loged Maxed Phase", ((MaxedPhase-LogMin)/(LogMax - LogMin)));
     }
 
 	return 0;
@@ -192,9 +225,10 @@ crosscorrstruct crossCorr(vector <Mat> imageBuffer, vector<double> spreadcode){
 	fftw_complex *spreadcodeftin, *spreadcodeftout;
 	spreadcodeftin  = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * spreadcode.size());
 	spreadcodeftout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * spreadcode.size());
-	fftw_plan p;
 
-    for(size_t i = 0; i != spreadcode.size(); i++){
+	fftw_plan p;
+#pragma omp parallel for
+    for(size_t i = 0; i < spreadcode.size(); i++){
         spreadcodeftin[i][0] = spreadcode.at(i);
         spreadcodeftin[i][1] = 0;
     }
@@ -213,29 +247,31 @@ crosscorrstruct crossCorr(vector <Mat> imageBuffer, vector<double> spreadcode){
 	out.Phase     = Mat::zeros(imageBuffer.at(0).size(), imageBuffer.at(0).type());
 
 	// Cross correlate
-	fftw_complex *pixelsftin, *pixelsftout;
-	pixelsftin  = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * imageBuffer.size());
-	pixelsftout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * imageBuffer.size());
-	fftw_plan(forward);
-	forward = fftw_plan_dft_1d( imageBuffer.size()
-						      , pixelsftin, pixelsftout
-						      , FFTW_FORWARD, FFTW_ESTIMATE
-						      );
-	fftw_plan(backward);
-	backward= fftw_plan_dft_1d( imageBuffer.size()
-						      , pixelsftin, pixelsftout
-						      , FFTW_BACKWARD, FFTW_ESTIMATE
-						      );
 
-    for(int x = 0; x != imageBuffer.at(0).rows; x++){
-        for(int y = 0; y != imageBuffer.at(0).cols; y++){
+#pragma omp parallel for
+    for(int x = 0; x < imageBuffer.at(0).rows; x++){
+        fftw_complex *pixelsftin, *pixelsftout;
+        pixelsftin  = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * imageBuffer.size());
+        pixelsftout = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * imageBuffer.size());
+        fftw_plan(forward);
+        forward = fftw_plan_dft_1d( imageBuffer.size()
+                                  , pixelsftin, pixelsftout
+                                  , FFTW_FORWARD, FFTW_ESTIMATE
+                                  );
+        fftw_plan(backward);
+        backward= fftw_plan_dft_1d( imageBuffer.size()
+                                  , pixelsftin, pixelsftout
+                                  , FFTW_BACKWARD, FFTW_ESTIMATE
+                                  );
+        for(int y = 0; y < imageBuffer.at(0).cols; y++){
+//#pragma omp parallel for
             for(int i = 0; i < imageBuffer.size(); ++i){
                 pixelsftin[i][0] = imageBuffer.at(i).at<double>(x,y)/255.0;
                 pixelsftin[i][1] = 0;
             }
 
 			fftw_execute(forward);
-
+//#pragma omp parallel for
             for (int j = 0; j < imageBuffer.size(); ++j ){
                 complex<double> p (    pixelsftout[j][0], -pixelsftout    [j][1]);
                 complex<double> c (spreadcodeftout[j][0],  spreadcodeftout[j][1]);
@@ -248,19 +284,21 @@ crosscorrstruct crossCorr(vector <Mat> imageBuffer, vector<double> spreadcode){
 
             for(int i = 0; i < imageBuffer.size(); ++i){
                 imageBuffer.at(i).at<double>(x,y) = pixelsftout[i][0];
-				if (pixelsftout[i][0] > out.Amplitude.at<double>(x,y)){
+                if (pixelsftout[i][0] > out.Amplitude.at<double>(x,y)){
                     out.Amplitude.at<double>(x,y) = pixelsftout[i][0];
-					out.Phase.at<double>(x,y) = i;
-				}
+                    out.Phase.at<double>(x,y) = i;
+                }
             }
         }
+//        fftw_destroy_plan(forward);
+//        fftw_destroy_plan(backward);
+        fftw_free(pixelsftin);
+        fftw_free(pixelsftout);
     }
 
-	fftw_destroy_plan(forward);
-	fftw_destroy_plan(backward);
-	fftw_free(pixelsftin);
-	fftw_free(pixelsftout);
+
 	fftw_free(spreadcodeftout);
+
 	
 	return out;
 }
@@ -310,3 +348,4 @@ void CallBackFunc(int event, int x, int y, int flags, void* clickLocation){
 
     }
 }
+
