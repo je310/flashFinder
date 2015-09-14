@@ -9,7 +9,7 @@
 %Videofile = x1OutsideFlash(:,:,:,1:1000);
 Videofile = Goldcodes1and2;
 
-[fkernel, codeUSf, code] = gengoldcode(7, [7 3], [7 3 2 1], 1); %polys from http://uk.mathworks.com/help/comm/ref/goldsequencegenerator.html
+[fkernel, codeUSf, code] = gengoldcode(7, [7 3], [7 3 2 1], 2); %polys from http://uk.mathworks.com/help/comm/ref/goldsequencegenerator.html
 %[fkernel, codeUSf, code] = genmsequence(7, [7 6]);
 %fkernel(2:10) = 0;
 %fkernel(end-8:end) = 0;
